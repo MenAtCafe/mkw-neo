@@ -17,7 +17,7 @@ Nothing here has been packed into an app or played yet. The host builds; the gam
 | `tex_soft` (texture memory) | ported, host builds |
 | `mem_file` (guest memory in a file) | not ported: upstream does it better, see below |
 | `tex_release` (placement tile pages) | not portable as it stands, see below |
-| App built from this tree | **not yet** |
+| App built from this tree | done: 23.0 GB, ad-hoc signed, custom icon, `~/Documents/Switch 2 Files/MKW-next.app` |
 | Race played on 8 GB | **not yet** |
 
 ## What the soft-texture port does
