@@ -50,7 +50,7 @@ You need the game's dump (base plus any update, as a folder or a NUP), Xcode 27.
 toolchain nxnative lists. Then:
 
 ```sh
-scripts/build-next.sh
+scripts/build.sh
 ```
 
 It builds from the dump in `~/Documents/Switch 2 Files/Mario Kart World Rom`, packs the Mac host and shaders, makes the
@@ -62,11 +62,11 @@ Override paths with `DUMP=`, `OUT=`, `WORK=`, `ICON=`.
 ## Running
 
 ```sh
-scripts/play-next.sh
+scripts/play.sh
 ```
 
 The host keys its save, its pipeline cache and its temp files by title ID, so the launcher points all of them at
-`~/Documents/mkw-next-data` to keep them apart from any other build of the same game. It also sets `DM_GUEST_FILE=1`.
+`~/Documents/Library/Application Support/nxnative/0400C3F00006E000` to keep them apart from any other build of the same game. It also sets `DM_GUEST_FILE=1`.
 
 Launch it through that script or the `.command` file beside the app, not from Finder or the Dock: the build removes the
 bundle seal, and LaunchServices wants it.

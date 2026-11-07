@@ -4,7 +4,7 @@
 
 The app's signature sealed every file inside the bundle, including the 22 GB RomFS, and macOS re-hashes a sealed bundle
 before the first launch. The build now signs the two executables and removes `Contents/_CodeSignature`, so there is no
-bundle seal to verify. Launch through `scripts/play-next.sh` or the `.command` beside the app; Finder and the Dock go
+bundle seal to verify. Launch through `scripts/play.sh` or the `.command` beside the app; Finder and the Dock go
 through LaunchServices, which wants the seal.
 
 ## It crashes a few seconds into the first race with `CRASH sig=10` in `pkg_upload`
@@ -37,4 +37,4 @@ missing; see `keep_cpu` in `pkg_upload_` (`dm/gfx/nvn/nvn_mtl.m`).
 ## The first race stutters on a build with no bundled archive
 
 Expected. Without the app's `Contents/Resources/pso/<gpu>.mtl4a`, pipelines are compiled the first time each is used. The
-build makes that archive; `scripts/build-next.sh` includes it.
+build makes that archive; `scripts/build.sh` includes it.
