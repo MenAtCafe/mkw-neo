@@ -7,9 +7,22 @@ The game sets its own present interval, flipping between 1 and 2 when a frame is
 to 30 for a moment. That is why a dropped-frame count matters more here than an average frame rate: the average hides the
 flip, the drops do not.
 
-## Current build, Koopa Troopa Beach, Grand Prix
+## What counts as a first visit
 
-First visit, with the bundled pipeline archive:
+Two kinds of run are below, and they are not the same thing:
+
+- **Cache warm.** The course has been opened before, so its pipelines are in the archive. This is the ordinary case after
+  a few minutes of play, and the second Koopa Troopa Beach table is it.
+- **Cache cold.** A course never opened before on a machine that has never played it. We have not measured that, and none
+  of the figures here should be quoted as if we had. Even the "first visit" runs below happened after earlier roaming and
+  testing on the same install, so some of their pipelines were already there.
+
+The old build's 5,292 pipelines and 31.19 s of compiling did come from a genuinely empty cache, which is why that
+comparison is still worth making.
+
+## Koopa Troopa Beach, Grand Prix, cache partly warm
+
+First run on the course, after earlier play on the same install:
 
 | Window | Dropped | p99 | Footprint |
 |---|---|---|---|
@@ -18,7 +31,7 @@ First visit, with the bundled pipeline archive:
 | to frame 900 | **0** | **16.67 ms** | 3.1 GB |
 | to frame 1200 | 8 | 33.34 ms | 3.2 GB |
 
-Second visit, cache warm:
+Second run, cache warm:
 
 | Window | Dropped | p99 | Footprint |
 |---|---|---|---|
@@ -28,8 +41,11 @@ Second visit, cache warm:
 | frame 6000 | 2 | 33.34 ms | 3771 MiB |
 | peak | | | 3913 MiB |
 
-Worst frame of a three minute session: **26.4 ms**. Pipelines compiled during the session: **81** (60 on the first visit).
-Crashes: 0.
+Worst frame of a three minute session: **26.4 ms**. Pipelines compiled during the session: **81**, of which 60 were
+during the first run. Crashes: 0.
+
+Neither table has a window with everything at 16.67 ms, and it would be wrong to call the frame rate locked. Most frames hit
+it, a handful per 300 do not, and the game itself drops to a 30 fps interval for a moment when one is late.
 
 ## The same course on the previous build
 
@@ -42,13 +58,14 @@ From the build this repository replaces, same machine, same mode:
 | Time spent compiling | 31.19 s | 0.0 s |
 | Second visit, dropped | 2 of 300 | 0 to 4 of 300 |
 | Peak footprint | 4.48 GB | 3.91 GB |
-| Locked 60 window | not recorded | yes, 16.67 ms p99 |
+| Best window | not recorded | 300 of 300, p99 16.67 ms |
 
 ## A Grand Prix of new courses, one session
 
-Four courses played for the first time in a row, Peach Beach and the three after it:
+Four courses played for the first time in a row, Peach Beach and the three after it, on an install that had already played
+other courses, so the archive was warm for the cup but not for these tracks:
 
-| | |
+| Measured | Value |
 |---|---|
 | Pipelines compiled, whole session | 175 |
 | Dropped per 300 frames after the opening window | 0 to 10 |

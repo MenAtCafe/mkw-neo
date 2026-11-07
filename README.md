@@ -14,16 +14,20 @@ Nothing from the game is in here. No ROM, no keys, no built app. You need your o
 | Metric | This machine |
 |---|---|
 | Render | 1080p, upscaled into the window |
-| Footprint | 3.7 to 3.9 GB while racing |
-| First visit to a course | a few dozen pipelines, a hitch, then locked 60 |
-| Second visit, Koopa Troopa Beach | 0 to 4 dropped frames per 300 |
-| Best 300-frame window | 300 of 300, p99 16.67 ms |
-| Worst frame in a session | 26 ms |
+| Footprint | 3.7 to 4.0 GB while racing |
+| Frame rate | 60 fps, with a handful of long frames per 300 |
+| Typical window | 0 to 10 dropped frames of 300 |
+| Best window | 300 of 300, p99 16.67 ms (best case, not typical) |
+| Worst frame, a cup of new courses | 44.5 ms |
+| Cold pipeline cache, never played | not measured here |
 
-The first visit used to be the painful part, and it still costs something: a Grand Prix of four new courses compiled 175
-pipelines in total, with 0 to 10 dropped frames per 300 after the opening one. It is a hitch you notice, not the cliff it
-was. The build ships a 469.9 MB Metal 4 pipeline archive made for this GPU, so a course loads with most of its pipelines
-already compiled instead of compiling 5,292 of them mid race.
+Every number above comes from sessions where the pipeline cache had already been warmed by earlier play, so a course that
+has never been opened is not measured here, and the "first visit" figures should be read that way.
+
+What is measured is honest enough: a Grand Prix of four new courses compiled 175 pipelines in total and settled at 0 to 10
+dropped frames per 300 after the opening window, worst frame 44.5 ms. It is a hitch you notice, not the cliff it was. The
+build ships a 469.9 MB Metal 4 pipeline archive made for this GPU, so a course loads with most of its pipelines already
+compiled instead of compiling 5,292 of them mid race, which is what the previous build did.
 
 ## What this repository adds to nxnative
 
