@@ -2849,7 +2849,7 @@ static id<MTLTexture> pkg_upload_(const tex_t *t, uint64_t *stamp, id<MTLTexture
     }
 
     // A sparse pool's texture is read through a copy gathered from its page table, unmapped pages as 0 (a mip tail at a 4 KB offset has no host alias; reading the alias stopped the host with SIGBUS)
-    const uint8_t *src = (const uint8_t *)t->mem + (sk ? nvn_tex_level_offset(&t->d, (unsigned)sk) : 0); uint8_t *part = NULL;
+    const uint8_t *src = t->mem; uint8_t *part = NULL;   // the deswizzler adds the level's offset itself (nvn_deswizzle_geom), so none is added here: level l + sk is its argument
     if (sparse) {
         if (!(part = malloc(t->L.size ? t->L.size : 1))) MDIE("sparse texture copy of %llu bytes failed", (unsigned long long)t->L.size);
         nvn_sparse_copy(t->pool, part, (uint64_t)(uintptr_t)t->mem, t->L.size); src = part;
