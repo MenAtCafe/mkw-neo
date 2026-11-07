@@ -4,8 +4,7 @@
 
 The app's signature sealed every file inside the bundle, including the 22 GB RomFS, and macOS re-hashes a sealed bundle
 before the first launch. The build now signs the two executables and removes `Contents/_CodeSignature`, so there is no
-bundle seal to verify. Launch through `scripts/play.sh` or the `.command` beside the app; Finder and the Dock go
-through LaunchServices, which wants the seal.
+bundle seal left to verify, so the app opens straight from Finder.
 
 ## It crashes a few seconds into the first race with `CRASH sig=10` in `pkg_upload`
 

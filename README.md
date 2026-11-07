@@ -68,8 +68,8 @@ scripts/play.sh
 The host keys its save, its pipeline cache and its temp files by title ID, so the launcher points all of them at
 `~/Documents/Library/Application Support/nxnative/0400C3F00006E000` to keep them apart from any other build of the same game. It also sets `DM_GUEST_FILE=1`.
 
-Launch it through that script or the `.command` file beside the app, not from Finder or the Dock: the build removes the
-bundle seal, and LaunchServices wants it.
+Double-click the app, or run `scripts/play.sh` if you want a terminal. Both end up in the same place: the launcher reads
+`env.txt` for the keyboard map and `DM_GUEST_FILE=1`.
 
 ## Measurements
 
