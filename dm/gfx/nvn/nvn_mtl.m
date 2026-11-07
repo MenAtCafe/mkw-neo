@@ -2279,10 +2279,12 @@ int mtl_pool_wrapped(const void *addr, uint64_t len) {
 // Profile tex_soft (DM_NVN_TEX_SOFT=0 / 1): a large block-compressed texture the game loaded from its files is kept without its finest level, on the
 // texture the host makes has it (img_usage, tex_upgrade, dummy_img_atomic), and that is what this tests
 static nvn_hmap g_soft_hard = {.klen = 8};   // under g_smu: textures the game copies from, which stay whole (soft_harden)
+int nvn_sparse_pool(const void *pool);   // hle_nvn.c: a pool whose textures are placement sparse (declared here: this check runs before the block that declares it)
 static int tex_soft(const tex_t *t) {
     static int on = -1; if (on < 0) { const char *e = getenv("DM_NVN_TEX_SOFT"); on = e && *e ? atoi(e) != 0 : DM_GAME_TEX_SOFT; if (on) MLOG("large block-compressed textures kept without their finest level (profile tex_soft; DM_NVN_TEX_SOFT=0 turns it off)"); }
     if (!on || !t->has_layout || !t->mem || t->d.levels < 3 || (t->d.target != 1 && t->d.target != 4)) return 0;
-    if (t->pool && t->pool->magic == MAGIC('P', 'O', 'O', 'L') && (t->pool->flags & NVN_MEMORY_POOL_FLAGS_VIRTUAL)) return 0;   // a sparse pool's: sparse_upload, tiles that follow the game's mappings
+    if (t->pool && t->pool->magic == MAGIC('P', 'O', 'O', 'L') &&
+        ((t->pool->flags & NVN_MEMORY_POOL_FLAGS_VIRTUAL) || nvn_sparse_pool(t->pool))) return 0;   // a sparse pool's: sparse_upload, tiles that follow the game's mappings, read through the 4 KB page table (reading them by a level offset crashed)
     if (MAX(t->d.width, t->d.height) < 512 || MIN(t->d.width, t->d.height) < 256) return 0;
     int bw, bh; if (!nvn_fmt_bpb(t->d.format, &bw, &bh) || bw < 2) return 0;
     uint64_t k = (uint64_t)(uintptr_t)t->mem; pthread_mutex_lock(&g_smu); int hard = nvn_hm_get(&g_soft_hard, &k) != NULL; pthread_mutex_unlock(&g_smu);
