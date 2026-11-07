@@ -1,5 +1,9 @@
 # nxnative
 
+> **This branch is a workbench, not a release.** It is nxnative main plus a keyboard map and a port of the soft-texture
+> memory saving, aimed at running Mario Kart World on an 8 GB Mac. What is done, what is missing and how to build it:
+> [NEXT.md](NEXT.md). Everything below this note is upstream's.
+
 Play your own Nintendo Switch games natively on iPhone and iPad. Bring your game (its NSP files) and your `prod.keys`; one script turns them into an IPA that you sideload.
 
 It is not an emulator: the game's own code runs directly on the Apple chip, with Switch graphics rebuilt on Metal. Nothing from any game is in this repository, and the project is not affiliated with Nintendo or any game publisher.
