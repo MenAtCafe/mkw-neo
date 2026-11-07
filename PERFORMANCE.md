@@ -7,6 +7,36 @@ The game sets its own present interval, flipping between 1 and 2 when a frame is
 to 30 for a moment. That is why a dropped-frame count matters more here than an average frame rate: the average hides the
 flip, the drops do not.
 
+## Words used here
+
+**Frame time.** How long one picture took, in milliseconds. At 60 fps a frame has 16.67 ms; at 30 fps, 33.34 ms. Every
+number in this file is frame time, dropped frames or memory, because those are what you feel.
+
+**Dropped frame.** A frame that missed its slot: the picture on screen lingered while the new one was late. Three dropped
+frames in a second looks like a small skip, thirty looks like a slideshow.
+
+**p99.** The 99th percentile, the slowest one frame in a hundred. It matters because an average hides stutter: a run can
+average 16 ms and still have every hundredth frame take 80 ms, which is the hitch you actually notice. A p99 of 16.67 ms
+means 99 frames of 100 hit 60 fps.
+
+**Footprint.** The process's own memory, as macOS counts it for an app. It does not include the game's files on disk. This
+laptop has 8 GB shared with everything else, so the footprint is the number that decides whether the machine swaps.
+
+**Present interval.** How many display refreshes each picture waits for. Interval 1 is 60 fps, interval 2 is 30. This game
+switches between them by itself when a frame is late, so a session is rarely one or the other all the way through.
+
+**Pipeline.** A shader plus every setting it will run with: blending, depth, vertex layout, what it draws into. Thousands of
+combinations exist and each has to be built before first use, which is why a new course can hitch.
+
+**Pipeline archive, warm and cold cache.** Built pipelines are saved so the next run loads them instead of building again.
+A warm cache means they are there; a cold cache means the game builds them while you play. The app ships a 469.9 MB archive
+for this GPU, so most of the cache starts warm.
+
+**RomFS.** The game's data, 21.7 GB of levels, textures, audio and models, packed as one file inside the app.
+
+**Guest memory.** The memory the game thinks it has. The host lends it, and where that memory physically lives is what this
+whole document is about.
+
 ## What counts as a first visit
 
 Two kinds of run are below, and they are not the same thing:

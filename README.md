@@ -60,10 +60,13 @@ scripts/build.sh
 ```
 
 It builds from the dump in `~/Documents/Switch 2 Files/Mario Kart World Rom`, packs the Mac host and shaders, makes the
-pipeline archive for this Mac's GPU, puts the icon in, signs the two executables and removes the bundle seal so macOS does
-not re-hash the 22 GB RomFS before the first launch. Two hours the first time, most of it shaders.
+pipeline archive for this Mac's GPU, bakes in the keyboard map and `DM_GUEST_FILE=1`, puts the icon in, signs the two
+executables and removes the bundle seal so macOS does not re-hash the 22 GB RomFS before the first launch. Two hours the
+first time, most of it shaders.
 
-Override paths with `DUMP=`, `OUT=`, `WORK=`, `ICON=`.
+The icon and the settings are in `assets/`, so a build made from this repository looks and plays like the one the numbers
+above came from. Paths default to `~/Documents` and can be set as environment variables or in `scripts/local.conf`, which
+is not tracked.
 
 ## Running
 

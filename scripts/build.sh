@@ -1,20 +1,25 @@
 #!/bin/sh
-# Build the app: this dump, our icon, the work folder.
-#   scripts/build.sh [extra build options]
-# Override with DUMP=, OUT=, WORK=, ICON=, PY=.
+# Build the app: your dump, the icon and settings in assets/, and a pipeline archive made for this Mac's GPU.
+#   DUMP="/path/to/dump" scripts/build.sh [extra options]
+# Defaults for this machine live in scripts/local.conf (not tracked); every path can also be set as an environment variable.
 set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-PY="${PY:-$HOME/Documents/DeepSeek R&D/Switch 2 - Mario Kart World/tooling/plumber-racer-2/.venv/bin/python}"
+[ -f "$ROOT/scripts/local.conf" ] && . "$ROOT/scripts/local.conf"
+PY="${PY:-python3}"
 DUMP="${DUMP:-$HOME/Documents/Switch 2 Files/Mario Kart World Rom}"
-OUT="${OUT:-$HOME/Documents/Switch 2 Files/Mario Kart World.app}"
-WORK="${WORK:-$HOME/Documents/DeepSeek R&D/mkw-build}"
-ICON="${ICON:-$HOME/Documents/DeepSeek R&D/Switch 2 - Mario Kart World/tooling/plumber-racer-2/macbook-neo/assets/AppIcon.png}"
+OUT="${OUT:-$HOME/Documents/Mario Kart World.app}"
+WORK="${WORK:-$HOME/Documents/mkw-build}"
+ICON="${ICON:-$ROOT/assets/AppIcon.png}"
+ENVFILE="${ENVFILE:-$ROOT/assets/env.txt}"
+[ -d "$DUMP" ] || { echo "no dump at $DUMP: set DUMP= or add it to scripts/local.conf" >&2; exit 1; }
 export DOTNET_ROOT="${DOTNET_ROOT:-/opt/homebrew/opt/dotnet/libexec}"
 export MAC_ICON="$ICON"   # pack_app.py turns it into AppIcon.icns before the app is signed, so no second signing pass
-echo "building $OUT from $DUMP"
-echo "  work $WORK"
-echo "  icon $ICON"
-"$PY" "$ROOT/scripts/build_ipa_from_nsp.py" "$DUMP" --platform mac-app -o "$OUT" --work-dir "$WORK" "$@"
+echo "building $OUT"
+echo "  dump     $DUMP"
+echo "  work     $WORK"
+echo "  icon     $ICON"
+echo "  settings $ENVFILE"
+"$PY" "$ROOT/scripts/build_ipa_from_nsp.py" "$DUMP" --platform mac-app -o "$OUT" --work-dir "$WORK" --env-file "$ENVFILE" "$@"
 status=$?
 if [ "$status" -eq 0 ]; then
     # Sign the two executables and drop the bundle seal. The seal covers every file in Contents, including the 22 GB
