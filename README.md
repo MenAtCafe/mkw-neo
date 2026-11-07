@@ -11,7 +11,7 @@ Nothing from the game is in here. No ROM, no keys, no built app. You need your o
 
 ## What it does here
 
-| | |
+| Metric | This machine |
 |---|---|
 | Render | 1080p, upscaled into the window |
 | Footprint | 3.7 to 3.9 GB while racing |

@@ -35,7 +35,7 @@ Crashes: 0.
 
 From the build this repository replaces, same machine, same mode:
 
-| | Previous build | This build |
+| Measured | Previous build | This build |
 |---|---|---|
 | First visit, dropped | 243 of 300 | 23, then 0 |
 | Pipelines, first visit | 5,292 | 60 |
