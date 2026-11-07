@@ -35,6 +35,9 @@ app_pool	0x240000000
 sys_resource	0x4000000
 # What a 1.0.0 dump needs on 8 GB of Mac: the game's reported free memory follows what it maps, so its blocks are let go
 mem_map_limit	on
+# Large block-compressed textures are kept without their finest level, and their pools upload on the CPU while they have
+# no buffer: about two GB less footprint, at the cost of softer large surfaces (nvn_mtl.m tex_soft)
+tex_soft	on
 
 # ---- Operation mode ----
 # Handheld: the picture is 1920x1080 rather than a docked 4K target, which is the cheap mode on a small GPU
