@@ -15,13 +15,15 @@ Nothing from the game is in here. No ROM, no keys, no built app. You need your o
 |---|---|
 | Render | 1080p, upscaled into the window |
 | Footprint | 3.7 to 3.9 GB while racing |
-| First visit to a course | 60 pipelines compiled, no stall |
+| First visit to a course | a few dozen pipelines, a hitch, then locked 60 |
 | Second visit, Koopa Troopa Beach | 0 to 4 dropped frames per 300 |
 | Best 300-frame window | 300 of 300, p99 16.67 ms |
 | Worst frame in a session | 26 ms |
 
-The first visit used to be the painful part. The build now ships a 469.9 MB Metal 4 pipeline archive made for this GPU,
-so a course loads with its pipelines already compiled instead of compiling 5,292 of them mid race.
+The first visit used to be the painful part, and it still costs something: a Grand Prix of four new courses compiled 175
+pipelines in total, with 0 to 10 dropped frames per 300 after the opening one. It is a hitch you notice, not the cliff it
+was. The build ships a 469.9 MB Metal 4 pipeline archive made for this GPU, so a course loads with most of its pipelines
+already compiled instead of compiling 5,292 of them mid race.
 
 ## What this repository adds to nxnative
 

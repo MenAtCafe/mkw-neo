@@ -44,6 +44,23 @@ From the build this repository replaces, same machine, same mode:
 | Peak footprint | 4.48 GB | 3.91 GB |
 | Locked 60 window | not recorded | yes, 16.67 ms p99 |
 
+## A Grand Prix of new courses, one session
+
+Four courses played for the first time in a row, Peach Beach and the three after it:
+
+| | |
+|---|---|
+| Pipelines compiled, whole session | 175 |
+| Dropped per 300 frames after the opening window | 0 to 10 |
+| Opening window (the cup loading) | 34 dropped of 300 |
+| Worst frame of the session | 44.5 ms |
+| Peak footprint | 4.0 GB |
+| Crashes | 0 |
+
+So the first-visit tax is real and small now. Each new course costs a handful of pipelines and a visible hitch, then the
+frames settle at 0 to 10 dropped per 300, which is a game you can play rather than a slideshow. The old build compiled
+5,292 pipelines on a single first visit and dropped 243 frames of 300 doing it.
+
 ## What each change was worth
 
 **Guest memory in files (`DM_GUEST_FILE=1`)**: 8.2 GB to 3.4 GB in free roam, flat instead of climbing as the world
