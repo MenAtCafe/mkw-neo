@@ -85,6 +85,25 @@ Double-click the app, or run `scripts/play.sh` if you want a terminal. Both end 
 [PERFORMANCE.md](PERFORMANCE.md) has the runs behind the numbers above, both visits to Koopa Troopa Beach, the two crashes
 that came before it worked, and what each fix was worth.
 
+## Where this came from
+
+Two builds, a week apart.
+
+**The first one, early November 2026.** A fork of [plumber-racer-2](https://github.com/cheemu21/plumber-racer-2), itself a
+port of [nxnative](https://github.com/seedds/nxnative) to this game. It carried the memory work that first got Mario Kart
+World running on a laptop with 8 GB: the guest memory in a file mapping, texture levels dropped to save space, tiles
+released once uploaded, and a cap on how much memory the game could map. That build reached 40 to 57 fps with a 4.48 GB
+footprint, and it compiled 5,292 pipelines during a first visit, which cost 31 seconds and dropped 243 frames of 300.
+
+**This one, a few days later.** Upstream nxnative had moved on in the meantime: sparse tiles shared by physical memory,
+guest memory in files as a supported feature, pipeline archives made at build time, and compaction that works. So instead
+of carrying a fork forward, this repository was rebuilt on current main and kept only what still earned its place: the
+keyboard map, the profile for a 1.0.0 dump, and the texture upload gate that makes file-backed guest memory usable for
+the GPU.
+
+The result runs at 3.7 to 4.0 GB instead of 4.48, drops 0 to 10 frames per 300 instead of hundreds on a new course, and
+builds most of its pipelines before the game starts. The old measurements are still in [PERFORMANCE.md](PERFORMANCE.md)
+because a claim that nothing was lost is worth more next to the numbers it replaced.
 ## Credits
 
 The engine is [nxnative](https://github.com/seedds/nxnative) by seedds, which builds on

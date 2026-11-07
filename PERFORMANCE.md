@@ -77,9 +77,14 @@ during the first run. Crashes: 0.
 Neither table has a window with everything at 16.67 ms, and it would be wrong to call the frame rate locked. Most frames hit
 it, a handful per 300 do not, and the game itself drops to a 30 fps interval for a moment when one is late.
 
-## The same course on the previous build
+## The same course on the first build
 
-From the build this repository replaces, same machine, same mode:
+The previous build was the first attempt, in early November 2026: a fork of
+[plumber-racer-2](https://github.com/cheemu21/plumber-racer-2) that carried the memory work which first made this game run
+on 8 GB. It reached 40 to 57 fps and 4.48 GB, and it compiled 5,292 pipelines on a first visit. That repository is gone;
+the numbers are kept here because they are the honest yardstick. [README.md](README.md#where-this-came-from) has the story.
+
+Same machine, same mode:
 
 | Measured | Previous build | This build |
 |---|---|---|
