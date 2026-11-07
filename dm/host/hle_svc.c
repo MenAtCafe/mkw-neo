@@ -75,6 +75,8 @@ int proc_pid_rusage(int pid, int flavor, rusage_info_t *buffer);   // libproc.h,
 static int g_gf_tab[GF_MAX];       // the files, open for reading and writing
 static int g_gf_n;                 // how many; 0 while the guest is anonymous. Set by mem_init_once, whose pthread_once orders it before every reader
 static uint64_t g_gf_min_free;     // DM_GUEST_FILE_MIN_FREE in bytes: the free space on the files' disk under which the game is stopped; 0 = never
+// nvn_dirty.c nvn_dirty_release: a page of a file-backed block is the file's already, there is nothing for the host to give back
+int dm_guest_file_backed(void) { return g_gf_n > 0; }
 
 // Every second the free space on the files' disk (they all lie on one volume): under DM_GUEST_FILE_MIN_FREE the game is stopped (exit code 87; the memory watchdog's is 86, hle_nvn.c), before a full
 // disk leaves the kernel no room to write the guest's pages out, nor a phone's system any room. Every 10th second one line, [RED] under 2 GB free: what the disk cost so far and the footprint's parts
