@@ -33,6 +33,7 @@
 #include "nvn_primitive.h"
 #include "nvn_timestamp.h"
 #include "msl_image.h"
+int dm_guest_file_backed(void);   // hle_svc.c: the guest block is a set of files (DM_GUEST_FILE), whose pages a no-copy buffer would wire
 #include "dmsh_chain.h"   // DMSH_CHAIN: the translation chain version of the B shader library expected by this source tree, one for every game (beside this file, tools/dmsh_chain.py --header)
 #include "game_profile.h"   // game profile constants (profile id, the profile's switches)
 // Texture slot table per stage: 0-127 the combined handles (nvnCommandBufferBindTexture), 128-255 the separate texture binds (NVN_SEPTEX_SLOT0, nvn_obj.h)
@@ -2777,8 +2778,9 @@ static id<MTLTexture> pkg_upload_(const tex_t *t, uint64_t *stamp, id<MTLTexture
     int linear = (t->d.flags & (NVN_TEXTURE_FLAGS_LINEAR | NVN_TEXTURE_FLAGS_LINEAR_RENDER_TARGET)) != 0;   // linear storage no view could take (linear_fit): its rows are copied on the CPU
     int sk = tex_soft(t) ? 1 : 0;   // source level = host level + sk
     // On the CPU while its pool has no zero-copy buffer: the GPU's upload would give it one (mtl_addr), and a buffer's whole range is read into memory and wired for
-    // the residency set, for a pool the GPU may otherwise never address. With the guest memory in files that wiring shows up as frames of 60 ms and more
-    int keep_cpu = (DM_GAME_TEX_SOFT && t->has_layout) && !mtl_pool_wrapped(t->mem, t->L.size);
+    // the residency set, for a pool the GPU may otherwise never address. With the guest memory in files that wiring shows up as frames of 60 ms and more, so the
+    // gate follows the guest memory, not the profile: it is on whenever the guest block is a set of files (DM_GUEST_FILE), and with tex_soft as well
+    int keep_cpu = (dm_guest_file_backed() || DM_GAME_TEX_SOFT) && t->has_layout && !mtl_pool_wrapped(t->mem, t->L.size);
     int direct = !sk && !keep_cpu && !linear && !rb_shift && stamp && direct_upload_on() && g_nvn_deswz_gpu && !(t->pool && nvn_sparse_pool(t->pool)) && nvn_deswz_gpu_direct_supported(&t->d);
     if (direct) d.usage |= MTLTextureUsageShaderWrite | MTLTextureUsagePixelFormatView;
     id<MTLTexture> mt = reuse && reuse.pixelFormat == d.pixelFormat && reuse.width == d.width && reuse.height == d.height && reuse.mipmapLevelCount == d.mipmapLevelCount && reuse.textureType == d.textureType
