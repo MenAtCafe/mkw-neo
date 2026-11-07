@@ -16,7 +16,13 @@ echo "  work $WORK"
 echo "  icon $ICON"
 "$PY" "$ROOT/scripts/build_ipa_from_nsp.py" "$DUMP" --platform mac-app -o "$OUT" --work-dir "$WORK" "$@"
 status=$?
-# A freshly built bundle carries no quarantine, but a copy made by hand or a download would: clear it so Gatekeeper does not
-# hold the launch for minutes while it verifies 23 GB
-xattr -cr "$OUT" 2>/dev/null || true
+if [ "$status" -eq 0 ]; then
+    # Sign the two executables and drop the bundle seal. The seal covers every file in Contents, including the 22 GB
+    # RomFS, so macOS re-hashes the whole thing before the first launch and shows "Verifying Mario Kart World…" for
+    # minutes. The launcher runs the binary directly, which needs the binary's own signature and nothing else.
+    codesign --force --sign - "$OUT/Contents/MacOS/dmhost" >/dev/null 2>&1 || true
+    codesign --force --sign - "$OUT/Contents/MacOS/nxnative" >/dev/null 2>&1 || true
+    rm -rf "$OUT/Contents/_CodeSignature"
+    xattr -cr "$OUT" 2>/dev/null || true
+fi
 exit $status
