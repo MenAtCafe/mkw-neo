@@ -15,8 +15,8 @@ Nothing here has been packed into an app or played yet. The host builds; the gam
 | Profile fitted to a 1.0.0 dump | done, three modules and the RomFS marker the dump has |
 | `mem_map_limit on`, `op_mode handheld` | done |
 | `tex_soft` (texture memory) | ported, host builds |
-| `mem_file` (guest memory in a file) | **not ported** |
-| `tex_release` (placement tile pages) | **not ported** |
+| `mem_file` (guest memory in a file) | not ported: upstream does it better, see below |
+| `tex_release` (placement tile pages) | not portable as it stands, see below |
 | App built from this tree | **not yet** |
 | Race played on 8 GB | **not yet** |
 
@@ -38,10 +38,24 @@ saving this build is after.
 
 Two switches can turn it off for a comparison run: `DM_NVN_TEX_SOFT=0` and removing the profile key.
 
+## The two keys that did not come across
+
+`mem_file` is **already upstream, under another name**. `DM_GUEST_FILE` in `dm/host/hle_svc.c` maps the guest block over
+unlinked sparse files in chunks, checks the free space before it does, flushes in the background and stops the game if the
+disk falls too low. Its own note records Mario Kart World writing 5.6 GB to disk in 5.5 minutes on a 16 GB Mac. Porting the
+older `mem_file` would duplicate it and conflict with it, so this branch leaves it alone. To use it here: `DM_GUEST_FILE=1`.
+
+`tex_release` **does not graft**. In the old fork it shares the guest pages behind a placement sparse texture's tiles and
+gives them back once the tiles are uploaded, about 860 MB on this game. Upstream has since rewritten that path: a tile is
+now mapped into a placement heap by `sp_range` and read from guest memory directly, with no copy to hang a release on, and
+the tile bookkeeping (`sp_ent`, physical-page sharing) does not exist here at all. Bringing the feature over means
+re-implementing it inside the new sparse code, which is a project of its own and should wait until the footprint of this
+build says whether the memory is even needed.
+
 ## What is still open
 
-`mem_file` and `tex_release` are not here. `mem_file` keeps guest memory in a file mapping, out of the footprint, which
-matters most on iOS; `tex_release` follows a placement sparse texture's tiles. Either may be needed before this fits 8 GB.
+Those two, plus the app build and the first race. If the build lands near 9 GB, `tex_release` becomes worth its project and
+`DM_GUEST_FILE=1` is the cheap experiment to try first.
 
 Nothing in the texture path has been exercised by a game yet. The failure to look for is a texture sampled one level off or a
 page returned while the game still reads it, which shows as corruption during play rather than at build time.
