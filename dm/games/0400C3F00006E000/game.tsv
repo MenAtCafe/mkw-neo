@@ -20,8 +20,8 @@ shader_versions	v0
 # ---- Files ----
 # The base game's subsdk0 is a Mono runtime (nn::ecli); 1.8.0's subsdk0 is the movie player and its subsdk1 a C library (build IDs from pull request #1116, not checked here).
 # Each build row names its own modules, and the host loads those of main's build (main.c profile_modules)
-modules	main subsdk0 subsdk1 sdk
-romfs_marker	Movie/StaffRoll_00.webm
+modules	main subsdk0 sdk
+romfs_marker	System/Resource/ResourceSizeTable.Product.100.Nin_Ounce_NVN2.rsizetable.zs
 zip_store	.zs:.bwav:.webm:.metallib
 
 # ---- Memory ----
@@ -33,6 +33,12 @@ mem_alias	0x100000000
 mem_stack	0x10000000
 app_pool	0x240000000
 sys_resource	0x4000000
+# What a 1.0.0 dump needs on 8 GB of Mac: the game's reported free memory follows what it maps, so its blocks are let go
+mem_map_limit	on
+
+# ---- Operation mode ----
+# Handheld: the picture is 1920x1080 rather than a docked 4K target, which is the cheap mode on a small GPU
+op_mode	handheld
 
 # ---- Shader split (shader_split.py) ----
 shader_groups	/Shader/=shader /Effect/=effect /Lib/=lib /Layout/=layout
