@@ -79,6 +79,7 @@ static _Atomic uint64_t g_sparse_writes;   // writes to pages protected for a pl
 static void sparse_note(range_t *r, uintptr_t p) { _Atomic uint8_t *sp = atomic_load(&r->sparse); if (sp && atomic_exchange(&sp[p], 0)) atomic_fetch_add(&g_sparse_writes, 1); }
 static void unprotect_page(range_t *r, uintptr_t p) {   // The caller has already changed the state from PROT to BUSY
     mp(r->base + (p << g_shift), g_pg, PROT_READ | PROT_WRITE);
+    madvise((void *)(r->base + (p << g_shift)), g_pg, MADV_FREE_REUSE);   // a page given back (nvn_dirty_release) is the game's again before it writes, or the system could still take what it writes
     stamp_page(r, p); sparse_note(r, p);
     atomic_store(&r->state[p], PG_NONE);
 }
@@ -109,6 +110,7 @@ static void release_pages(range_t *r, uintptr_t p, uintptr_t q, _Atomic uint64_t
         if (took) { if (!open) { run = i; open = 1; } continue; }
         if (open) {
             mp(r->base + (run << g_shift), (i - run) << g_shift, PROT_READ | PROT_WRITE);
+            madvise((void *)(r->base + (run << g_shift)), (i - run) << g_shift, MADV_FREE_REUSE);   // as in unprotect_page
             for (uintptr_t k = run; k < i; k++) { stamp_page(r, k); sparse_note(r, k); atomic_store(&r->state[k], PG_NONE); }
             if (count) atomic_fetch_add(count, i - run);
             open = 0;
@@ -232,6 +234,41 @@ int nvn_dirty_since_cached(const void **span, const void *addr, size_t len, uint
 }
 int nvn_dirty_since_span(const void *span, const void *addr, size_t len, uint64_t stamp) { return nvn_dirty_since_cached(&span, addr, len, stamp); }
 int nvn_dirty_since(const void *addr, size_t len, uint64_t stamp) { return nvn_dirty_since_span(NULL, addr, len, stamp); }
+// Give back the memory of the whole host pages of [addr, addr+len) whose bytes the host now keeps elsewhere (a texture's tiles on the GPU; expect: those bytes, len long, or NULL to
+// take them from the page itself while it is still read-only). Only pages still protected since the upload are given (one the game wrote since holds what the host has not taken yet),
+// and only those of a single tracked range (a page shared by two pools is left). The page is BUSY meanwhile, so a fault waits; it is writable only for madvise (which refuses
+// read-only pages) and read-only again before it is looked at. A page protected for a placement sparse tile is left: the GPU reads it as the tile's storage
+static _Atomic uint64_t g_released;
+__attribute__((weak)) int dm_guest_file_backed(void) { return 0; }   // hle_svc.c: guest memory in a file (profile mem_file) is not the process's, nothing to give back
+size_t nvn_dirty_release(const void *addr, size_t len, const void *expect) {
+    uintptr_t a = (uintptr_t)addr, lo = (a + g_pg - 1) & ~(g_pg - 1), hi = (a + len) & ~(g_pg - 1); size_t freed = 0;
+    if (!g_pg || dm_guest_file_backed()) return 0;
+    for (uintptr_t pa = lo; pa < hi; pa += g_pg) {
+        range_t *r = NULL; int n = atomic_load(&g_nr), cover = 0;
+        for (int i = 0; i < n; i++) { range_t *x = rg(i); if (live_at(i) && pa >= x->base && pa < x->end) { r = x; cover++; } }
+        if (cover != 1 || pa + g_pg > r->end) continue;
+        uintptr_t p = (pa - r->base) >> g_shift; uint8_t st = PG_PROT;
+        _Atomic uint8_t *sp = atomic_load(&r->sparse);
+        if (sp && atomic_load(&sp[p])) continue;   // a placement sparse tile's storage: the GPU reads it
+        if (!atomic_compare_exchange_strong(&r->state[p], &st, PG_BUSY)) continue;
+        static _Thread_local uint8_t snap[65536];   // no expected bytes: the page as it is now (read-only, so nothing changes it until the window below)
+        const uint8_t *e = expect ? (const uint8_t *)expect + (pa - a) : snap;
+        if (!expect) { if (g_pg > sizeof snap) { atomic_store(&r->state[p], PG_PROT); continue; } memcpy(snap, (const void *)pa, g_pg); }
+        mp(pa, g_pg, PROT_READ | PROT_WRITE); madvise((void *)pa, g_pg, MADV_FREE_REUSABLE); mp(pa, g_pg, PROT_READ);
+        if (memcmp((const void *)pa, e, g_pg)) {   // a byte changed in between: a game write keeps the page and dirties it, zeros are the system taking the page at once
+            int zero = 1; for (size_t k = 0; k < g_pg && zero; k += 8) zero = !*(const uint64_t *)(pa + k);
+            mp(pa, g_pg, PROT_READ | PROT_WRITE); madvise((void *)pa, g_pg, MADV_FREE_REUSE);
+            if (zero) { memcpy((void *)pa, e, g_pg); mp(pa, g_pg, PROT_READ); atomic_store(&r->state[p], PG_PROT); }
+            else { stamp_page(r, p); atomic_store(&r->state[p], PG_NONE); }
+            continue;
+        }
+        atomic_store(&r->state[p], PG_PROT); freed += g_pg;
+    }
+    atomic_fetch_add(&g_released, freed);
+    return freed;
+}
+uint64_t nvn_dirty_released(void) { return atomic_load(&g_released); }
+
 void nvn_dirty_slot_stats(int *live, int *used_slots, uint64_t *adds_total) {
     int n = atomic_load(&g_nr), active = 0;
     for (int i = 0; i < n; i++) active += live_at(i) != 0;
