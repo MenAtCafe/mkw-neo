@@ -17,7 +17,7 @@ Nothing from the game is in here. No ROM, no keys, no built app. You need your o
 | Footprint | 4.1 to 4.5 GB while racing |
 | Frame rate | about 52 fps mean, every frame one vsync, judder instead of 30 fps stretches |
 | Typical window | 25 to 35 dropped frames of 300, at true speed |
-| Game speed | 0.989 of real time, so no slow motion |
+| Game speed | 1.000 of real time, so no slow motion |
 | Frame-rate cap 30 | 0 to 2 dropped of 300, loads take twice as long |
 
 For comparison, the previous build measured 84 to 130 dropped of 300 on the same course, with a p99 past 100 ms. The
@@ -75,10 +75,11 @@ the launcher: frame-rate cap, console mode, upscaling, display mode, language.
 
 ## What it is not
 
-- **Not 60 fps in races.** The GPU sits at 1080p and the game needs about twice the pixels it can afford to hold 60. It
-  presents 60 in short stretches and settles at 30. A 30 cap makes that consistent at the cost of slower loading.
+- **Not a locked 60.** It averages about 52 fps with every frame at one vsync, and pays for that in 9.5% dropped
+  frames rather than in 30 fps stretches. A frame-rate cap of 30 drops 0 to 2 of 300 instead, at the cost of loading
+  taking about twice as long.
 - **Not a bigger number than the old build.** The old build reported 60 because the game stretched time when frames ran
-  long. This one runs at real speed and says 30.
+  long; this one runs at 1.000 of real speed and reports what it actually delivers.
 - **Not immune to heat.** At 110 °C the machine throttles and the same scene drops from 30 to 22 fps. Charged, hard
   surface, short sessions.
 
