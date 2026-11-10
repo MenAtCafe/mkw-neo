@@ -53,7 +53,7 @@ skipped (`--gpu none`); the app builds its pipelines on the first launch instead
 `DUMP` has no default on purpose: it is your path, never the repository's. `OUT` and `WORK` default to `~/Documents`, and
 all three can come from `scripts/local.conf`, which is not tracked.
 
-## Playing
+## How to play
 
 Double-click the app. Its save, settings and cache are in
 `~/Library/Application Support/nxnative/0400C3F00006E000/`, its log in `~/Library/Logs/nxnative/0400C3F00006E000.log`.
