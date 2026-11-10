@@ -23,6 +23,7 @@
 #include "motion_pro_mac.h"
 #include "pad_apple.h"
 #include "pad_hid_mac.h"
+#include "pad_kbd.h"
 #include "pad_switch2_apple.h"
 static int s2pad_player(s2_pad *d);   // the Switch 2 pads' player slots (below, beside the raw HID pads')
 static void s2pad_read(s2_pad *d);
@@ -38,7 +39,18 @@ static void merge_rumble_to_s2(int on);
 static CAMetalLayer *g_layer;
 static uint64_t g_btn;
 static int g_w, g_a, g_s, g_d;
-static int g_rl, g_ru, g_rr, g_rd;   // arrow keys pressed with Shift held: the right stick (each goes back up as it went down, whatever Shift does meanwhile)
+static int g_rl, g_ru, g_rr, g_rd;
+static pad_kbd g_kbd;           // the keyboard's map (pad_kbd.h): DM_KBD_MAP over the default layout
+static uint64_t g_kheld;        // one bit per pad_kbd action held now
+static uint8_t g_krole[256];    // the action each key code went down as, +1 (0: none)
+static int g_kbd_ready, g_kbd_on;
+static void kbd_init(void) {    // DM_KBD_MAP set: the map decides, and the keys it leaves out fall through to the default layout
+    if (g_kbd_ready) return; g_kbd_ready = 1;
+    const char *map = getenv("DM_KBD_MAP");
+    if (map && *map) { pad_kbd_init(&g_kbd, map); g_kbd_on = 1; }
+}
+static int32_t kbd_axis(uint64_t h, int pos, int neg) { return (int32_t)(((h >> pos) & 1) - ((h >> neg) & 1)) * DM_STICK_MAX; }
+static void kbd_release_all(void) { g_kheld = 0; memset(g_krole, 0, sizeof g_krole); }   // arrow keys pressed with Shift held: the right stick (each goes back up as it went down, whatever Shift does meanwhile)
 static int g_input_on = 1;   // main thread: the game window is key, so its keyboard, mouse and controllers reach the game (input_release / input_resume)
 
 void *front_metal_layer(void) { return (__bridge void *)g_layer; }
@@ -142,6 +154,14 @@ static void cursor_hide_for_input(void) {
     if (NSPointInRect([v convertPoint:g_win.mouseLocationOutsideOfEventStream fromView:nil], v.bounds)) [NSCursor setHiddenUntilMouseMoves:YES];
 }
 static void push(void) {
+    kbd_init();
+    if (g_kbd_on) {
+        const uint64_t h = g_kheld;
+        dm_input_set((h & 0xFFFF) | (((h >> PK_SHAKE) & 1) ? DM_BTN_SHAKE : 0),
+                     kbd_axis(h, PK_LRIGHT, PK_LLEFT), kbd_axis(h, PK_LUP, PK_LDOWN),
+                     kbd_axis(h, PK_RRIGHT, PK_RLEFT), kbd_axis(h, PK_RUP, PK_RDOWN));
+        return;
+    }
     int32_t lx = (g_d - g_a) * 32767, ly = (g_w - g_s) * 32767;
     int32_t rx = (g_rr - g_rl) * 32767, ry = (g_ru - g_rd) * 32767;
     dm_input_set(g_btn, lx, ly, rx, ry);
@@ -169,6 +189,20 @@ static void on_key(NSEvent *e, int down) {
     if (cp_blocks_input(g_cp.phase)) {   // the prompt has the keyboard: Return or J (A) is done, Escape or K (B) closes it, no key reaches the game
         if (down && g_cp.phase == CP_OPEN) { if (c == 53 || c == 40) g_cp_cancel = 1; else if (c == 36 || c == 38) g_cp_confirm = 1; cp_poll(); }
         return;
+    }
+    kbd_init();
+    if (g_kbd_on && c <= 0xFF) {   // the map first: a key it names never reaches the default layout below
+        int a = pad_kbd_action(&g_kbd, c);
+        if (a >= 0) {
+            if (down) {
+                if ((e.modifierFlags & NSEventModifierFlagShift) != 0) a = pad_kbd_as_right_stick(a);
+                g_krole[c] = (uint8_t)(a + 1); g_kheld |= 1ull << a; cursor_hide_for_input();
+            } else {
+                int was = g_krole[c];
+                if (was) { g_krole[c] = 0; g_kheld &= ~(1ull << (was - 1)); }
+            }
+            push(); return;
+        }
     }
     switch (c) { case 13: g_w = down; break; case 0: g_a = down; break; case 1: g_s = down; break; case 2: g_d = down; break; }
     // An arrow key pressed with Shift held is the right stick until it is released; without Shift, the D-pad. The keyboard had no right stick: a 3D game's camera
@@ -337,7 +371,7 @@ static void input_release(void) {
     g_input_on = 0;
     dm_motion_pro_active(0); hidpad_motion_clear();
     dm_switch2_active(0);
-    g_btn = 0; g_w = g_a = g_s = g_d = 0; g_rl = g_ru = g_rr = g_rd = 0; push();
+    g_btn = 0; g_w = g_a = g_s = g_d = 0; g_rl = g_ru = g_rr = g_rd = 0; kbd_release_all(); push();
     if (g_mouse_down) { g_mouse_down = 0; dm_touch_set(NULL, 0); }
     pads_release();
 }
@@ -579,7 +613,7 @@ int front_ctrl_support(int min, int max) {
     if (!g_layer) return -1;
     dispatch_semaphore_t done = dispatch_semaphore_create(0);
     dispatch_async(dispatch_get_main_queue(), ^{
-        g_btn = 0; g_w = g_a = g_s = g_d = 0; g_rl = g_ru = g_rr = g_rd = 0; push();   // nothing the game held stays pressed while the prompt has the input
+        g_btn = 0; g_w = g_a = g_s = g_d = 0; g_rl = g_ru = g_rr = g_rd = 0; kbd_release_all(); push();   // nothing the game held stays pressed while the prompt has the input
         if (g_mouse_down) { g_mouse_down = 0; dm_touch_set(NULL, 0); }
         pads_release();
         int a, b; cp_buttons(&a, &b);
@@ -1671,7 +1705,7 @@ int front_text_input(const char *title, const char *sub, const char *guide, cons
     dispatch_sync(dispatch_get_main_queue(), ^{
         // The box takes the keyboard and the mouse, so the game window never sees the key-up of the button or the touch-up of the click that opened it: nothing may stay pressed
         // while it is up, or the game reads the stuck button / touch the moment the box closes (Stardew Valley's character creation re-opened the keyboard endlessly)
-        g_btn = 0; g_w = g_a = g_s = g_d = 0; g_rl = g_ru = g_rr = g_rd = 0; push();
+        g_btn = 0; g_w = g_a = g_s = g_d = 0; g_rl = g_ru = g_rr = g_rd = 0; kbd_release_all(); push();
         dm_touch_set(NULL, 0);
         int min_chars = g_swkbd_min_chars > 0 ? g_swkbd_min_chars : 0;
         NSString *info = [NSString stringWithFormat:@"%s%s%s", sub ? sub : "", sub && *sub && guide && *guide ? "\n" : "", guide ? guide : ""];

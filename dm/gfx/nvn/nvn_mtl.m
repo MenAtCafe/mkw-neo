@@ -36,7 +36,8 @@
 #include "nvn_timestamp.h"
 #include "msl_image.h"
 #include "dmsh_chain.h"   // DMSH_CHAIN: the translation chain version of the B shader library expected by this source tree, one for every game (beside this file, tools/dmsh_chain.py --header)
-#include "game_profile.h"   // game profile constants (profile id, the profile's switches)
+#include "game_profile.h"
+int dm_guest_file_backed(void);   // hle_svc.c: the guest block is a set of files (DM_GUEST_FILE), whose pages a no-copy buffer would wire   // game profile constants (profile id, the profile's switches)
 // Texture slot table per stage: 0-127 the combined handles (nvnCommandBufferBindTexture), 128-255 the separate texture binds (NVN_SEPTEX_SLOT0, nvn_obj.h)
 #define NTEX 256
 // The NVN driver's constant segments c0 and c2 (byte offsets, slot counts) and the binding kinds of the shader reflection have one definition, which the shader build reads too (dmsh_build.py through dmsh_abi.py)
@@ -3287,13 +3288,24 @@ static id<MTLBuffer> up_big_src(uint64_t addr, uint64_t len, uint64_t *off) {
     res_add(buf); [g_up_keep addObject:buf]; *off = (uint64_t)addr - a;
     return buf;
 }
+// Whether a zero-copy buffer covers any of [addr, addr+len): pages under one cannot be given back (nvn_dirty_release)
+static int mtl_pool_wrapped(const void *addr, uint64_t len) {
+    int r = 0; uintptr_t lo = (uintptr_t)addr, hi = lo + len;
+    pthread_mutex_lock(&g_mu);
+    for (int i = 0; i < g_npool && !r; i++) r = g_pools[i].buf && g_pools[i].lo < hi && lo < g_pools[i].hi;
+    pthread_mutex_unlock(&g_mu);
+    return r;
+}
 static id<MTLTexture> pkg_upload_(const tex_t *t, uint64_t *stamp, id<MTLTexture> reuse, MTLTextureUsage keep) {
     MTLTextureDescriptor *d = tex_desc(t, 1);
     if (!d) return nil;
     d.usage |= keep & (MTLTextureUsageRenderTarget | MTLTextureUsagePixelFormatView);
     int rb_shift = rb_packed_shift(t->d.format);   // the RGB565 family is repacked into Metal's order on the CPU (rb_packed_shift)
     int linear = (t->d.flags & (NVN_TEXTURE_FLAGS_LINEAR | NVN_TEXTURE_FLAGS_LINEAR_RENDER_TARGET)) != 0;   // linear storage no view could take (linear_fit): its rows are copied on the CPU
-    int direct = !linear && !rb_shift && stamp && direct_upload_on() && g_nvn_deswz_gpu && !(t->pool && nvn_sparse_pool(t->pool)) && nvn_deswz_gpu_direct_supported(&t->d);
+    // On the CPU while the guest block is in files: a GPU upload would take a buffer over the guest's pages and Metal would wire the
+    // whole range into the residency set, which in files shows up as tens of milliseconds a frame. tex_soft is not ported here
+    int keep_cpu = dm_guest_file_backed() && t->has_layout && !mtl_pool_wrapped(t->mem, t->L.size);
+    int direct = !keep_cpu && !linear && !rb_shift && stamp && direct_upload_on() && g_nvn_deswz_gpu && !(t->pool && nvn_sparse_pool(t->pool)) && nvn_deswz_gpu_direct_supported(&t->d);
     if (direct) d.usage |= MTLTextureUsageShaderWrite | MTLTextureUsagePixelFormatView;
     id<MTLTexture> mt = reuse && reuse.pixelFormat == d.pixelFormat && reuse.width == d.width && reuse.height == d.height && reuse.mipmapLevelCount == d.mipmapLevelCount && reuse.textureType == d.textureType
                         && (reuse.usage & d.usage) == d.usage

@@ -340,8 +340,10 @@ def pack(a):
             if phtml.is_dir(): copy([phtml], pres / 'html', False)
             rows.append('\t'.join([n, 'exe=@C@/MacOS/dmhost', f'arg=@R@/dm/p{n}', 'cwd=@S@', f'DM_ROMFS=@R@/p{n}/{"romfs.img" if prom.is_file() else "romfs"}', f'DM_MSL_DIR=@R@/msl/p{n}', f'DM_NVN_SHMAP=@R@/dm/p{n}/shader_map.tsv', f'DM_PROGRAM={n}']))
         (dm / 'programs.tsv').write_text('\n'.join(rows) + '\n')
-    icon = bool(a.icon)
-    if icon: step('icon'); make_icns(a.icon, res / 'AppIcon.icns')
+    # MAC_ICON: a squircle of our own instead of the game's own icon (mkw-neo assets/AppIcon.png)
+    mac_icon = os.environ.get('MAC_ICON')
+    icon = bool(a.icon) or bool(mac_icon)
+    if icon: step('icon'); make_icns(mac_icon or a.icon, res / 'AppIcon.icns')
     info = info_plist(a, minos, icon)
     info['DMModuleFiles'] = [p.name for p in mods]
     commit = source_commit()

@@ -47,3 +47,8 @@ fps_target	60
 # ---- Graphics ----
 # agl wraps its clears in render conditions on Donkey Kong Bananza and Splatoon Raiders; the same library here, to be confirmed on this game
 render_cond	on
+
+# What a 1.0.0 dump needs on 8 GB of Mac: the game's reported free memory follows what it maps, so its blocks are let
+mem_map_limit	on
+# Handheld: the picture is 1920x1080 rather than a docked 4K target, which is the cheap mode on a small GPU
+op_mode	handheld
