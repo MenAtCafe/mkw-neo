@@ -71,8 +71,12 @@ p99 33.34 ms, 4.3 GB. The opening windows of a new area drop 78 to 95 of 300 whi
 |---|---|---|---|---|
 | Hold on (upstream default) | 37 to 38 fps, a third of frames at 30 | 1 to 3% | 33 ms | the 30/60 flipping |
 | **Hold off (ships)** | **50.7 to 57.5 fps, all one vsync** | **9.5%** | **33 ms** | judder instead of 30 fps stretches |
-| Cap 30 | 30 steady | 0 to 2 | 33 ms | startup and loading take twice as long |
+| Cap 30 | 29 to 30 steady, all 2 vsyncs | 70 of 4,175 (1.7%) | 33 ms | startup and loading take twice as long |
 | `DM_FPS_TARGET=0` | 30, slow motion | 163 of 4,737 | 50 ms | the game stretches time again |
+
+In the hand, the 30 cap is the smoothest of the three: every frame gets 33.34 ms against about 10 ms of GPU work, so
+none arrive late, the interval never flips, and the game's dynamic resolution sits at the top of its range. 52 fps with
+9.5% irregular drops reads as stutter even though it is more pictures. Film at 24 fps is smooth for the same reason.
 
 Holding on keeps more frames but spends a third of the session at 30. Holding off pays in dropped frames, which in a
 racing game reads as judder rather than as stalling. The cap at 30 is the calm option.
