@@ -45,7 +45,9 @@ prints 60 while the world wades.
 
 ## Frame holding: off, the shipped default now
 
-`DM_FPS_HOLD=off` stops a late frame being given an extra vsync. Measured on the same course:
+`DM_FPS_HOLD=off` stops a late frame being given an extra vsync. Measured on Koopa Troopa Beach on a warmed pipeline cache: 19 pipelines were compiled during that session, against 326 in the first one.
+
+Same course:
 
 | | Hold on (upstream default) | Hold off |
 |---|---|---|
