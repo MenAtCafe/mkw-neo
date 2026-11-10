@@ -67,8 +67,8 @@ now ships it off.
   presented 1920x1080 to 2816x1584. The game's own dynamic resolution fights a scaled view. Reverted.
 - **`DM_PRESENT_INTERVAL=display`**: the cut applied, the distribution did not move. 0 of 18 windows at 60, more drops.
 - **`DM_FPS_TARGET=0`**: see the table above, worse on every line.
-- **Warming the cache by idling in the menu for two hours**: builds nothing, heats the machine, and costs the next
-  session its headroom. Course pipelines build by playing courses.
+- **Idling in the menu for two hours to warm the cache** (measured on the previous build, not this one): builds
+  nothing, heats the machine, and costs the next session its headroom. Course pipelines build by playing courses.
 
 ## The shape of the game on this GPU
 
