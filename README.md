@@ -15,8 +15,8 @@ Nothing from the game is in here. No ROM, no keys, no built app. You need your o
 |---|---|
 | Render | 1080p, upscaled to the window by MetalFX |
 | Footprint | 4.1 to 4.5 GB while racing |
-| Frame rate | 30 fps steady, brief 60 on light stretches, about 38 fps mean |
-| Typical window | 3 to 8 dropped frames of 300 |
+| Frame rate | about 52 fps mean, every frame one vsync, judder instead of 30 fps stretches |
+| Typical window | 25 to 35 dropped frames of 300, at true speed |
 | Game speed | 0.989 of real time, so no slow motion |
 | Frame-rate cap 30 | 0 to 2 dropped of 300, loads take twice as long |
 

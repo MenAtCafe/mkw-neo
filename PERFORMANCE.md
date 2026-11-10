@@ -43,6 +43,22 @@ game runs slower than real time, and the tail is worse.
 The old numbers were higher and less honest. A racing game that runs at 0.989 speed is a better racing game than one that
 prints 60 while the world wades.
 
+## Frame holding: off, the shipped default now
+
+` + `DM_FPS_HOLD=off` + ` stops a late frame being given an extra vsync. Measured on the same course:
+
+| | Hold on (upstream default) | Hold off |
+|---|---|---|
+| Mean fps | 37 to 38 | **50.7 to 54.4** |
+| Vsync split | 686 at 1, 1114 at 2 | **1800 at 1, 0 at 2** |
+| Game time | 0.989 of real time | **1.000** |
+| Dropped | 1 to 3% | 9.5% |
+| p99 | 33.34 ms | 33.34 ms |
+
+Fewer frames are dropped with holding on, but a third of the session runs at 30. With it off the game keeps the 60 cadence
+and pays in dropped frames instead, which in a racing game reads as judder rather than as stalling. That is why the build
+now ships it off.
+
 ## What was tried and did not work
 
 - **`DM_RENDER_SCALE=0.75`**: 33 to 65 dropped, p99 50 to 66 ms, interval flips up from 115 to 165, and MetalFX still
