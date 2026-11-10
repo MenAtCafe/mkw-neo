@@ -30,6 +30,15 @@ A v0 1.0.0 dump goes straight in: the profile registers exactly that build. The 
 | This build, 1080p, MetalFX, warm | 38 fps mean, 74% of windows at 30 | 0 to 2 | 33.34 ms | 4.1 GB |
 | This build, ` + DM_RENDER_SCALE=0.75 + ` | worse: more interval flips | 33 to 65 | 50 to 66 ms | 4.2 GB |
 
+Final configuration, one long session on the default 60 with MetalFX: ` + dropped 3 to 8 of 300, p99 33.34 ms, 37 to 38 fps,
+footprint 4.4 GB, and ` + frame step: game time 49.17 s in 49.73 s (0.989 of real time) + `, so the game runs at true speed rather
+than stretching. The interval split there was ` + held 1 / 2 / 3 vsyncs: 686 / 1114 / 0 + ` frames: about a third at 60, two thirds
+at 30, which is the game probing for 60 and settling.
+
+Frame-rate cap ` + 30 + ` gives ` + dropped 0 to 2 of 300 + ` and no toggling, at the cost of startup and loading taking about twice
+as long, because the frame step is whole vsyncs everywhere. ` + 0 + ` (the game's own step) measured worse on every line: 30 fps,
+p99 50 ms, 163 drops of 4,737, and slow motion.
+
 Distribution over 19 windows of the 1080p session: **0% at 60 fps, 74% at 30, 26% in between**, 93 of 5,668 frames
 dropped (1.6%), mean 38 fps. The game toggles its own present interval between 1 and 2 (115 times in one session), so it probes
 for 60, fails, and settles at 30.
