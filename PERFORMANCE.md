@@ -19,6 +19,9 @@ Default frame step (profile `fps_target 60`), one long session:
 
 `0.989 of real time` is the point of this build: frames that run long cost a frame, they do not slow the game down.
 
+Free roam, after the area had built its pipelines (29 of them during the session): **57.5 fps**, 10 dropped of 300,
+p99 33.34 ms, 4.3 GB. The opening windows of a new area drop 78 to 95 of 300 while those pipelines compile.
+
 ## The alternates
 
 | Setting | Frame rate | Dropped of 300 | p99 | Catch |
