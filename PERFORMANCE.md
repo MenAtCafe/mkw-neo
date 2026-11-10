@@ -45,7 +45,7 @@ prints 60 while the world wades.
 
 ## Frame holding: off, the shipped default now
 
-` + `DM_FPS_HOLD=off` + ` stops a late frame being given an extra vsync. Measured on the same course:
+`DM_FPS_HOLD=off` stops a late frame being given an extra vsync. Measured on the same course:
 
 | | Hold on (upstream default) | Hold off |
 |---|---|---|
