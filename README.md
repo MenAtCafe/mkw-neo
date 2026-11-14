@@ -23,7 +23,7 @@ Nothing from the game is in here. No ROM, no keys, no built app. You need your o
 | The game's dynamic resolution | off in practice (one GPU timestamp per submission read about 0, so the scene never stepped down) | on (segment timestamps without the GPU's idle gaps are the default) |
 | Render scale | not offered for this game | `DM_RENDER_SCALE`, 0.5 to 1.0, 1.0 the game's own sizes |
 | Pipeline archive | skipped (`--gpu none`), so the app compiled its bases on first use | built for this Mac and carried in the app |
-| Texture uploads over file-backed memory | on the CPU | on the CPU, and `DM_GUEST_FILE_CPU_UP=0` to compare with upstream's path |
+| Texture uploads over file-backed memory | on the CPU | on the CPU too, and the branch adds `DM_GUEST_FILE_CPU_UP=0`, which turns that off, to compare with upstream's path |
 | Measured | yes, [PERFORMANCE.md](PERFORMANCE.md) | no |
 
 The keyboard map, the icon, the 8 GB profile keys, the build scripts and the settings are the same as `main`, because they
@@ -41,9 +41,10 @@ time for the whole submission that difference is about zero, so it kept full siz
 reports fix that, and upstream now leaves out the GPU's idle time between command buffers, which is what used to make the
 size swing and distant detail flicker. This is the change that should let the game trade resolution for frames.
 
-**`DM_GUEST_FILE_CPU_UP=0`.** Our CPU upload gate is still on: a no-copy Metal buffer over file pages is read into memory
-and wired when it enters the residency set. Upstream now reads a large pool through a buffer of its own that the upload
-batch holds, which may make the gate unnecessary, and this switch is how to find out.
+**`DM_GUEST_FILE_CPU_UP=0` turns the upload gate off.** The gate itself is the same as on `main` and stays on by default: a
+no-copy Metal buffer over file pages is read into memory and wired when it enters the residency set, so such a texture is
+deswizzled and staged on the CPU instead. Upstream now reads a large pool through a buffer of its own that the upload batch
+holds, which may make the gate unnecessary, and the switch puts the uploads back on the GPU path so that can be measured.
 
 Everything else is unchanged: `DM_FPS_HOLD=off`, MetalFX upscaling, the keyboard map, `mem_map_limit` and handheld mode.
 
@@ -137,7 +138,7 @@ as a claim about it. Three runs would replace it:
 
 1. One warm-cache race: frame rate, dropped frames of 300, footprint, and the scene width the log reports.
 2. The same race at render scale 1.0 and at 0.75.
-3. `DM_GUEST_FILE_CPU_UP=0`, to see whether the gate is still worth its cost.
+3. `DM_GUEST_FILE_CPU_UP=0`, which turns the CPU upload gate off, to see whether upstream's buffer path is enough.
 
 Until then this page states no numbers for this branch.
 
