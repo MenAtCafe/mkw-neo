@@ -43,3 +43,9 @@ shader_note	Mario Kart World shaders
 # slow motion. The interval takes the host's frame step instead (MATCH_FRAME_STEP in patches.py, found by its function on any build that keeps it), at most 2; the game's own
 # 30 fps mode stays its own
 fps_target	60
+
+# ---- An 8 GB Mac ----
+# The game's reported free memory follows what it maps, and without the limit it never let its blocks go: 2.4 GB mapped by a fourth race on an iPhone, 1.25 GB with it
+mem_map_limit	on
+# Handheld, not docked: the picture is 1920x1080 rather than a docked 2560x1440 target, which is the cheap mode on a small GPU
+op_mode	handheld
