@@ -1,149 +1,134 @@
-# nxnative
+# Mario Kart World on an 8 GB Mac
 
-Play your own Nintendo Switch and Switch 2 games natively on Apple silicon Macs, iPhone and iPad. One script packs your game into a Mac app or an unsigned IPA that you sideload.
+Mario Kart World, the Switch 2 game, running natively on a MacBook Neo: Apple A18 Pro, 8 GB of unified memory, macOS 27.
+There is no emulator here. The game's own ARM64 code runs, Horizon's services are reimplemented under it and NVN2 is
+translated to Metal, which is what [nxnative](https://github.com/seedds/nxnative) does.
 
-It is not an emulator: the game's own code runs directly on the Apple chip, with Switch graphics rebuilt on Metal. Nothing from any game is in this repository, and the project is not affiliated with Nintendo or any game publisher.
+This repository is that build: current nxnative main plus the handful of changes it took to fit this game on a machine
+with 8 GB, a keyboard layout made for it, and the measurements that came out of running it.
 
-[Games](#games) · [Community front ends](#community-front-ends) · [Requirements](#requirements) · [How to play](#how-to-play) · [Discussions](#discussions) · [For developers](#for-developers)
+Nothing from the game is in here. No ROM, no keys, no built app. You need your own copy of the game to build it.
 
-## Games
+## What it does here
 
-The full [tested games table](dm/games/README.md#games) includes original Switch games, tested builds, engines and graphics APIs. Each game's note records its tested platforms, progress and known issues.
+| Metric | This machine |
+|---|---|
+| Render | 1080p, upscaled to the window by MetalFX |
+| Footprint | 4.1 to 4.5 GB while racing |
+| Frame rate | about 52 fps mean in a race, 57.5 in free roam, every frame one vsync |
+| Typical window | 10 to 35 dropped frames of 300, at true speed |
+| Game speed | 1.000 of real time, so no slow motion |
+| Frame-rate cap 30 | 0 to 2 dropped of 300, loads take twice as long |
+| First visit to an area | 78 to 95 dropped of 300 while its pipelines compile |
 
-These Switch 2 games have passed Mac gameplay testing. Build them from a [`.nup` file or a dump folder](#switch-2-games):
+For comparison, the first build of this project measured 84 to 130 dropped of 300 on the same course, with a p99 past
+100 ms. The gain is not a bigger fps number: it is that a long frame now costs a frame instead of making the game run in
+slow motion. [PERFORMANCE.md](PERFORMANCE.md) has the runs behind every number here.
 
-- [Donkey Kong Bananza](dm/games/040074A01BF12000/README.md)
-- [Fast Fusion](dm/games/040041E0212AE000/README.md)
-- [Fire Emblem Fortune's Weave](dm/games/04007EF01F8AE000/README.md) — up to 120 fps
-- [Hyrule Warriors: Age of Imprisonment](dm/games/04003F40232DE000/README.md)
-- [Kirby Air Riders](dm/games/040077201BE50000/README.md)
-- [Mario Kart World](dm/games/0400C3F00006E000/README.md)
-- [Mario Tennis Fever](dm/games/0400D4201C6EA000/README.md)
-- [Nintendo Switch Sports Resort](dm/games/04008E001F098000/README.md)
-- [Orbitals](dm/games/040032B023CA4000/README.md) — two players: a controller for player 2
-- [Pokémon Pokopia](dm/games/0400A3A01EE4C000/README.md)
-- [PRAGMATA](dm/games/0400C76024710000/README.md)
-- [Splatoon Raiders](dm/games/0400380020056000/README.md)
-- [Star Fox](dm/games/0400E88025B1A000/README.md)
-- [The Legend of Zelda: Ocarina of Time](dm/games/0400486024DEC000/README.md)
-- [Yoshi and the Mysterious Book](dm/games/0400245021D2C000/README.md)
+## What this repository adds to nxnative
 
-## Community front ends
+**A keyboard map, `DM_KBD_MAP`, in `dm/host/pad_kbd.h`.** The Mac layout is J K U I for A B X Y and nothing for the
+camera, which is unusable without a controller. The map is data, 25 actions, and it is the change we sent upstream as
+[PR #1535](https://github.com/seedds/nxnative/pull/1535). See [keyboard-layout.md](keyboard-layout.md).
 
-Community projects build on nxnative with tools to turn your games into apps for your iPhone, iPad or Mac without the command line, and libraries to organize and launch them. They are separate projects: questions and bugs about them go to their own pages.
+**The guest memory stays in files** (`DM_GUEST_FILE=1`). Upstream has the feature now; this build turns it on.
 
-- [NX2Apple](https://github.com/LNPANDY/NX2Apple) — Mac builder with a shared iPhone/iPad game library.
-- [NX Play](https://github.com/varyform/nx-native-wrapper) — Mac library with device installs and save sync.
-- [NxNative Launcher](https://github.com/rennan101/nxnative_Launcher) — Mac launcher with guided builds and controller mapping.
-- [LumaNX](https://github.com/Xc1Ym/LumaNX) — Mac game builder with IPA export.
-- [GameCase](https://github.com/Tiaoge-tou/GameCase) — iOS game library based on LiveContainer.
+**Packaged textures upload on the CPU when the guest memory is in files.** A no-copy Metal buffer over file pages is read
+into memory and wired when it enters the residency set, which measured tens of milliseconds of GPU a frame before this
+gate. `keep_cpu` in `pkg_upload_` is the gate; `dm_guest_file_backed()` in `hle_svc.c` is what it asks.
 
-## Requirements
+**A profile fitted to a 1.0.0 dump**: the modules and RomFS marker this dump has, `mem_map_limit on`, and handheld mode,
+which targets 1080p rather than a docked 4K picture.
 
-- **Mac:** Apple silicon, macOS 26.6 or later. Building games requires Xcode 27.2.
-- **iPhone:** A17 Pro chip or later, with iOS 26 or later.
-- **iPad:** M1 chip or later, with iPadOS 26 or later.
+**A squircle icon**, through `MAC_ICON` in `dm/mac/pack_app.py`, instead of the game's own icon.
 
-The games' textures are BC-compressed, which older iPhones cannot read. Switch 2 builds are tested on the Mac; check each game's note for device-specific validation.
+**One-command build and play**: `scripts/build.sh` bakes the settings and the icon and drops the bundle seal;
+`scripts/play.sh` launches the app. `DM_FPS_HOLD=off` is part of the build because it is what made the race feel steady.
 
-For a game without a profile, the script writes a survey and tries a provisional build with guessed settings. That build may not start; see [Port another game](docs/development.md#port-another-game).
+`tex_soft`, the old fork's texture softening, is **not** carried here. It saved about 0.4 GB and broke Mario Kart World's
+terrain UVs, because its terrain shaders read a texture's size to lay out UVs, so a texture one level down tiles half as
+often and the road becomes flat plates. It is not worth porting for a feature that must stay off.
 
 ## How to play
 
-Switch 2 games are built from one `.nup` file or a folder of their files, not from NSPs, and are tested on the Mac only: see [Switch 2 games](#switch-2-games).
+Build the app, then double-click it or run `scripts/play.sh`. Hold **Option** at launch for the launcher: frame-rate cap,
+console mode, upscaling, display mode and language. [docs/playing.md](docs/playing.md) has the switches and the controller
+notes.
 
-### Build from the command line
+| Key | Pad |
+|---|---|
+| C X V Y | A B X Y |
+| Q E | ZL ZR |
+| E R | L R |
+| F H | click left / right stick |
+| WASD | left stick |
+| I J K L | right stick (camera) |
+| Shift with a letter | camera in the same direction |
+| = - | + - |
+| Space | shake |
 
-You need a Mac with macOS 26.6 or later, [Xcode](https://developer.apple.com/download/all/?q=Xcode%2027.2) 27.2, [Homebrew](https://brew.sh) and Python 3.12 or newer (an arm64 one, not an Intel Homebrew's). An iPhone build also needs Xcode's iOS platform (Xcode → Settings → Components).
+## Building
 
-The shaders are built with Xcode 27.2's Metal compiler. Select it before step 1: `sudo xcode-select -s /Applications/Xcode.app`. With several Xcode versions installed, name this one `Xcode-27.2.app` and select it with `sudo xcode-select -s /Applications/Xcode-27.2.app`.
+You need the game's dump (v0 1.0.0 for this profile; a folder or a NUP), Xcode 27.2, Homebrew, an arm64 Python 3.12 and
+the toolchain nxnative lists. Then:
 
-**1. Install the tools** (only once), in Terminal:
-
-```
-xcodebuild -downloadComponent MetalToolchain
-git clone https://github.com/seedds/nxnative.git && cd nxnative
-brew install xcodegen zstd glslang
-python3 -m pip install lz4 "capstone>=5,<6" fonttools nsz zbic "backports.zstd; python_version < '3.14'"
-```
-
-**2. Put your game in a folder**: the game, plus its update and DLC if you have them (`.nsp`, `.xci`, `.nsz` or `.xcz`):
-
-```
-~/Games/MarioWonder/
-  Super Mario Bros. Wonder [010015100B514000][v0].nsp
-  Super Mario Bros. Wonder [010015100B514800][v327680].nsp
-```
-
-**3. Build**, with your game folder and your `prod.keys`:
-
-```
-python3 scripts/build_ipa_from_nsp.py ~/Games/MarioWonder -k ~/keys/prod.keys
+```sh
+DUMP="/path/to/your/dump" scripts/build.sh
 ```
 
-The IPA appears in the game's folder. The first build takes 30–60 minutes and needs free disk space of about twice the game's size plus 10 GB; building again is much faster.
+It builds from the dump named in `DUMP`, packs the Mac host and shaders, bakes in the settings and the keyboard map, puts
+the icon in, signs the two executables and removes the bundle seal so macOS does not re-hash the 22 GB RomFS before the
+first launch. About 46 minutes the first time, 23 of them 11,560 shaders; about 5 minutes after that, because the shader
+cache is reused.
 
-To play on the Mac instead, add `--platform mac-app`: you get a Mac app of the game to open from Finder. All options: [The packing script in detail](docs/development.md#the-packing-script-in-detail).
+The pipeline archive is skipped (`--gpu none`). The app builds its pipelines on first use instead, which is the 78 to 95
+dropped frames in the table. A build with `GPU=<gpu>` makes the archive instead, for the cost of an hour.
 
-### Install
+`DUMP` has no default on purpose: it is your path, never the repository one. `OUT` and `WORK` default to `~/Documents`,
+and all of them can come from `scripts/local.conf`, which is not tracked. `DM_GUEST_FILE` needs 4 GB free on the temp
+volume; without it the game falls back to anonymous memory and the footprint climbs to 8 GB.
 
-Install the IPA on your iPhone or iPad with a sideloading tool such as AltStore, Sideloadly or LiveContainer. If your tool offers **Increased Memory Limit**, turn it on: the bigger games need it.
+## Running
 
-Game too big to install? Build again with `--romfs separate`, and run the command the script prints once to copy the game files to your phone ([Quick reinstalls](docs/development.md#quick-reinstalls)). With AltServer, also add `--shader-files`: it cannot install a file of 2 GiB or more.
-
-Controls, saves and settings: [Playing](docs/playing.md).
-
-### Switch 2 games
-
-A Switch 2 game is built from one [NUP](https://github.com/a55uka/nup) container (a `.nup` file) or a folder of its files, not from NSPs. Neither needs `prod.keys`. A game this project has no profile for is surveyed and gets a provisional profile, as NSPs do ([Port another game](docs/development.md#port-another-game)), which may not boot. You get a Mac app; iPhone and iPad are untested.
-
-**From a `.nup` file**, which holds the base game, its updates and DLC in one file. Give the file, or a folder that holds it:
-
-```
-python3 scripts/build_ipa_from_nsp.py ~/Games/DonkeyKongBananza.nup --platform mac-app
+```sh
+scripts/play.sh
 ```
 
-[Hyrule Warriors: Age of Imprisonment](dm/games/04003F40232DE000/README.md) is played this way: its 47 GB NUP unpacks in under five minutes. A NUP that carries the game's control data (its NACP) and icon gives the app the game's name and icon; otherwise the name comes from the game's profile and the app has no icon unless you give it one with `--icon <image>` (`ICON` in Spyder; a JPEG or PNG of any size).
+Double-click the app, or run the script if you want a terminal. The host keys its save, its pipeline cache and its temp
+files by title ID, in `~/Library/Application Support/nxnative/0400C3F00006E000/`; the log is at
+`~/Library/Logs/nxnative/0400C3F00006E000.log`.
 
-A NUP without the base game also works, when its base package is empty or it has none and its updates are marked `standalone_update`: the update is taken as the whole game, and the script says so. If the game then stops on missing files, that update holds only what changed: pack a NUP with the base game. The newest update is selected by default; `--package v<N>` selects another version in the container. Such a container has no `v0` (base game) to select.
+## Measurements
 
-**From a folder of files**. The script expects this layout (`updates` and `dlc` are optional):
+[PERFORMANCE.md](PERFORMANCE.md) has the runs behind the numbers above: Koopa Troopa Beach with a warm cache, free roam,
+the first visit to an area, the alternates (cap 30, `DM_FPS_TARGET=0`, `DM_RENDER_SCALE=0.75`), what each change was
+worth, and what is not measured here.
 
-```
-~/Games/DonkeyKongBananza/
-  base/exefs/                     main, main.npdm, sdk, rtld
-  base/romfs/
-  updates/458752/exefs/           the update's version, as a decimal number
-  updates/458752/romfs/           the patched RomFS, not a patch
-  dlc/040074a01bf13001/0/romfs/   the DLC's title ID
-```
+## Where this came from
 
-```
-python3 scripts/build_ipa_from_nsp.py ~/Games/DonkeyKongBananza --platform mac-app
-```
+Three builds, two weeks.
 
-An update's folder alone will do (no `base/`), and so will `exefs/` and `romfs/` directly in the folder, as `nup extract` writes them, which count as `base/`. The app has no icon, because the folder holds none; `--icon <image>` (`ICON` in Spyder) gives it one. To turn such a folder into a NUP: `nup pack ~/Games/DonkeyKongBananza game.nup`.
+**The first one, early November 2026.** A fork of [plumber-racer-2](https://github.com/cheemu21/plumber-racer-2), itself a
+port of [nxnative](https://github.com/seedds/nxnative) to this game. It carried the memory work that first got Mario Kart
+World running on an 8 GB laptop: the guest memory in a file mapping, texture levels dropped to save space, tiles released
+once uploaded, and a cap on how much memory the game could map. That build reached 40 to 57 fps with a 4.48 GB footprint,
+and compiled 5,292 pipelines during a first visit, which cost 31 seconds and dropped 243 frames of 300.
 
-## Discussions
+**The second one, a week later.** This repository before the rebase: 3.7 to 4.0 GB, 0 to 10 dropped frames of 300 on a
+warm course, a bundled 469.9 MB pipeline archive, and the keyboard map, the texture gate and the profile work. It reported
+60 fps in races, and that was true in a narrow sense: when frames ran long, the game stretched its own clock, so the
+counter held while the world slowed. That is the slow motion the next build removes.
 
-Questions, how a game runs on your Mac or iPhone, and ideas go in [Discussions](https://github.com/seedds/nxnative/discussions); [Issues](https://github.com/seedds/nxnative/issues) are for bugs, with the log. Ocarina of Time's performance (frame rate, resolution, which Macs hold 60 fps) is followed in [Ocarina of Time: state on main](https://github.com/seedds/nxnative/discussions/1789).
+**This one.** nxnative main as it stands, which now carries `DM_GUEST_FILE` itself and the host frame step for this game,
+plus the keyboard map, the texture gate, the icon, the 8 GB profile keys and `DM_FPS_HOLD=off`. It runs at 1.000 real
+speed, reports about 52 fps in a race and 57.5 in free roam, and sits at 4.4 GB. The old measurements are still in
+[PERFORMANCE.md](PERFORMANCE.md), because a claim that nothing was lost is worth more next to the numbers it replaced.
 
-## For developers
+## Credits
 
-[How it works](docs/development.md) · [Game notes](dm/games/README.md#games) · [Bring-up and debugging](docs/agents/README.md) · [Front ends](docs/frontends.md) · [Contributing](CONTRIBUTING.md)
+The engine is [nxnative](https://github.com/seedds/nxnative) by seedds, which builds on
+[plumber-racer-2](https://github.com/cheemu21/plumber-racer-2), whose Mario Kart World bring-up and memory work this build
+started from. Ryujinx, LibHac, SPIRV-Cross and MacNativeGames are in that stack too. The measurements, the keyboard map,
+the texture gate and the profile changes are ours.
 
-## Acknowledgements
-
-This project is built on other people's work ([licenses](dm/third_party/README.md)):
-
-- **[d2r-mobile](https://github.com/jhaizhou-ops/d2r-mobile)** (MIT) developed this native-execution approach, for Diablo II: Resurrected. nxnative started as a copy of its generic parts: the NSO rewriter, the host that stands in for Horizon, the NVN-on-Metal layer and the iOS app shell. Fixes go both ways.
-- **Ryujinx** (MIT): its shader translator (`Ryujinx.Graphics.Shader`, `Ryujinx.Common` and `Spv.Generator` 1.3.2, in `dm/third_party/ryujinx` with a few fixes listed in [its README](dm/third_party/ryujinx/README.md)) turns the games' shaders into SPIR-V. Its emulation of the kernel and system services is also a reference when the host's behaviour is in doubt.
-- **[Atmosphère](https://github.com/Atmosphere-NX/Atmosphere)**: its kernel, mesosphère, is the reference for Horizon's synchronization semantics (address arbiter, condition variables).
-- **[LibHac](https://github.com/Thealexbarney/LibHac)**: reads NSPs and layers updates over the base game in `dm/tools/nx_extract`.
-- **[SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross)**: SPIR-V to Metal Shading Language.
-- **[glslang](https://github.com/KhronosGroup/glslang)** compiles the GLSL of OpenGL games to SPIR-V for it.
-- **[MacNativeGames](https://github.com/ly05010419/MacNativeGames)** (MIT): the GPU widening of 8-bit indices and in-pass clears in `dm/gfx/nvn/nvn_mtl.m`, and the visibility-counter lowering in the shader translator.
-
-## License
-
-MIT ([LICENSE](LICENSE)). Third-party code keeps its own license ([dm/third_party](dm/third_party/README.md)).
+No game files, no keys, no built application. The project is not affiliated with Nintendo.
