@@ -7,6 +7,9 @@ translated to Metal, which is what [nxnative](https://github.com/seedds/nxnative
 This repository is that build: current nxnative main plus the handful of changes it took to fit this game on a machine
 with 8 GB, a keyboard layout made for it, and the measurements that came out of running it.
 
+> **This branch is the refresh.** It moves onto nxnative main of 14 November 2026, which brings a newer engine,
+> and the numbers below were measured before it. [REFRESH.md](REFRESH.md) has what changed and what is not measured yet.
+
 Nothing from the game is in here. No ROM, no keys, no built app. You need your own copy of the game to build it.
 
 ## What it does here
