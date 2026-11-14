@@ -7,6 +7,13 @@ translated to Metal, which is what [nxnative](https://github.com/seedds/nxnative
 This repository is that build: current nxnative main plus the handful of changes it took to fit this game on a machine
 with 8 GB, a keyboard layout made for it, and the measurements that came out of running it.
 
+> **There is a newer build on a branch: [`upstream-refresh`](https://github.com/MenAtCafe/mkw-neo/tree/upstream-refresh).**
+> It moves 245 commits forward on the engine, turns the game's own dynamic resolution back on, adds a render scale and
+> carries a pipeline archive, so the game can lower its 3D resolution under load for the first time and a first visit
+> should not spend itself compiling. That is the change most likely to raise the frame rate on a machine like this, and
+> nothing about it is measured yet: it is there to be built and tried, and its README says what to expect, good and bad.
+> The numbers below are this build's, not its.
+
 Nothing from the game is in here. No ROM, no keys, no built app. You need your own copy of the game to build it.
 
 ## What it does here
@@ -45,9 +52,10 @@ which targets 1080p rather than a docked 4K picture.
 **One-command build and play**: `scripts/build.sh` bakes the settings and the icon and drops the bundle seal;
 `scripts/play.sh` launches the app. `DM_FPS_HOLD=off` is part of the build because it is what made the race feel steady.
 
-`tex_soft`, the old fork's texture softening, is **not** carried here. It saved about 0.4 GB and broke Mario Kart World's
-terrain UVs, because its terrain shaders read a texture's size to lay out UVs, so a texture one level down tiles half as
-often and the road becomes flat plates. It is not worth porting for a feature that must stay off.
+`tex_soft`, the old fork's texture softening, is **not** carried here. Our build of it saved about 0.4 GB and broke Mario
+Kart World's terrain UVs: its terrain shaders read a texture's size to lay out those UVs, so a texture one level down tiles
+half as often and the road becomes flat plates. plumber-racer-2 now runs `tex_soft` on for this game and reports no broken
+textures, so that finding may belong to the older engine. Untested here.
 
 ## How to play
 
@@ -57,13 +65,14 @@ notes.
 
 | Key | Pad |
 |---|---|
-| C X V Y | A B X Y |
-| Q E | ZL ZR |
-| E R | L R |
+| C X V Z | A B X Y |
+| Q O | ZL ZR |
+| E U | L R |
 | F H | click left / right stick |
 | WASD | left stick |
 | I J K L | right stick (camera) |
-| Shift with a letter | camera in the same direction |
+| arrows | D-pad |
+| Shift with an arrow | the same direction on the right stick |
 | = - | + - |
 | Space | shake |
 
@@ -85,8 +94,9 @@ The pipeline archive is skipped (`--gpu none`). The app builds its pipelines on 
 dropped frames in the table. A build with `GPU=<gpu>` makes the archive instead, for the cost of an hour.
 
 `DUMP` has no default on purpose: it is your path, never the repository one. `OUT` and `WORK` default to `~/Documents`,
-and all of them can come from `scripts/local.conf`, which is not tracked. `DM_GUEST_FILE` needs 4 GB free on the temp
-volume; without it the game falls back to anonymous memory and the footprint climbs to 8 GB.
+and all of them can come from `scripts/local.conf`, which is not tracked. `DM_GUEST_FILE` needs about 10 GB free on the
+temp volume (a 2 GB floor plus 8 GB, since a Mac can swap); without it the game falls back to anonymous memory and the
+footprint climbs to 8 GB.
 
 ## Running
 
@@ -124,11 +134,15 @@ plus the keyboard map, the texture gate, the icon, the 8 GB profile keys and `DM
 speed, reports about 52 fps in a race and 57.5 in free roam, and sits at 4.4 GB. The old measurements are still in
 [PERFORMANCE.md](PERFORMANCE.md), because a claim that nothing was lost is worth more next to the numbers it replaced.
 
+**A fourth, on a branch.** [`upstream-refresh`](https://github.com/MenAtCafe/mkw-neo/tree/upstream-refresh) is the same port on
+245 newer commits of the engine, plus a render scale taken from plumber-racer-2 and a pipeline archive in the build. Nothing
+about it is measured. It is the one to try if you want to know whether this machine can beat 52 fps.
+
 ## Credits
 
-The engine is [nxnative](https://github.com/seedds/nxnative) by seedds, which builds on
-[plumber-racer-2](https://github.com/cheemu21/plumber-racer-2), whose Mario Kart World bring-up and memory work this build
-started from. Ryujinx, LibHac, SPIRV-Cross and MacNativeGames are in that stack too. The measurements, the keyboard map,
-the texture gate and the profile changes are ours.
+The engine is [nxnative](https://github.com/seedds/nxnative) by seedds. This port started from
+[plumber-racer-2](https://github.com/cheemu21/plumber-racer-2), a Mario Kart World port of nxnative whose bring-up and
+memory work this build builds on. Ryujinx, LibHac, SPIRV-Cross and MacNativeGames are in that stack too. The measurements,
+the keyboard map, the texture gate and the profile changes are ours.
 
 No game files, no keys, no built application. The project is not affiliated with Nintendo.
