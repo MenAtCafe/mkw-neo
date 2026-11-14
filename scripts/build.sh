@@ -14,6 +14,9 @@ PACKAGE="${PACKAGE:-}"
 GPU="${GPU:-}"   # the pipeline archive's GPU, default this Mac's; none skips the archive
 [ -n "$DUMP" ] || { echo "set DUMP= to your game dump, or put it in scripts/local.conf" >&2; exit 1; }
 [ -e "$DUMP" ] || { echo "no game at $DUMP" >&2; exit 1; }
+# The console goes into the work folder too, so a build without a terminal (a script, a scheduler) can be watched
+# while it runs: tail -f "$WORK/build.log". A terminal keeps the live output as before.
+if [ ! -t 1 ]; then mkdir -p "$WORK"; echo "build log: $WORK/build.log" >&2; exec > "$WORK/build.log" 2>&1; fi
 export DOTNET_ROOT="${DOTNET_ROOT:-/opt/homebrew/opt/dotnet/libexec}"
 export MAC_ICON="$ICON"   # pack_app.py turns it into AppIcon.icns before the app is signed
 echo "building $OUT"
