@@ -58,6 +58,10 @@ The game's own dynamic resolution now runs, because segment timestamps are the d
 softer than the 1080p that PERFORMANCE.md describes, and the frame rate to be something else. The launcher also
 shows a render scale row it did not show before; 1.0 is the game's own sizes.
 
+The build now makes the pipeline archive for this Mac's GPU, where the earlier builds passed `--gpu none` and let the app
+compile its bases on first use. That is a longer first build and a bigger app, and it is the point: a first visit should
+not hitch on pipeline compiles. `GPU=none` goes back to the old behaviour.
+
 ## What to measure first, in this order
 
 1. One race, warm cache: frame rate, dropped frames of 300, footprint, and the scene width from the log, with the

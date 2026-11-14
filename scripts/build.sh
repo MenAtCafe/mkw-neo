@@ -11,6 +11,7 @@ WORK="${WORK:-$HOME/Documents/mkw-build}"
 ENVFILE="${ENVFILE:-$ROOT/assets/env.txt}"
 ICON="${ICON:-$ROOT/assets/AppIcon.png}"
 PACKAGE="${PACKAGE:-}"
+GPU="${GPU:-}"   # the pipeline archive's GPU, default this Mac's; none skips the archive
 [ -n "$DUMP" ] || { echo "set DUMP= to your game dump, or put it in scripts/local.conf" >&2; exit 1; }
 [ -e "$DUMP" ] || { echo "no game at $DUMP" >&2; exit 1; }
 export DOTNET_ROOT="${DOTNET_ROOT:-/opt/homebrew/opt/dotnet/libexec}"
@@ -20,7 +21,12 @@ echo "  dump     $DUMP"
 echo "  work     $WORK"
 echo "  settings $ENVFILE"
 echo "  icon     $ICON"
-set -- "$DUMP" --platform mac-app -o "$OUT" --work-dir "$WORK" --env-file "$ENVFILE" --gpu "${GPU:-none}" "$@"
+echo "  base     ${GPU:-this machine} (GPU=none skips the pipeline archive)"
+set -- "$DUMP" --platform mac-app -o "$OUT" --work-dir "$WORK" --env-file "$ENVFILE" "$@"
+# The pipeline archive (dm/gfx/tools/pso_offline.py through metal-tt) for this Mac's GPU, which the app carries and its first start
+# opens instead of building the bases itself. It is a long step, and it is skipped by GPU=none, which is what the first builds of
+# this port used. --no-prebake drops the second half, the pipelines pso_offline.py leaves to the device.
+[ -n "$GPU" ] && set -- "$@" --gpu "$GPU"
 [ -n "$PACKAGE" ] && set -- "$@" -p "$PACKAGE"
 status=0
 "$PY" "$ROOT/scripts/build_ipa_from_nsp.py" "$@" || status=$?   # set -e would end the script here, before the icon and the seal

@@ -22,6 +22,7 @@ Nothing from the game is in here. No ROM, no keys, no built app. You need your o
 | Thread deadlines | the presenting thread only | the acquire, queue replay and encode threads |
 | The game's dynamic resolution | off in practice (one GPU timestamp per submission read about 0, so the scene never stepped down) | on (segment timestamps without the GPU's idle gaps are the default) |
 | Render scale | not offered for this game | `DM_RENDER_SCALE`, 0.5 to 1.0, 1.0 the game's own sizes |
+| Pipeline archive | skipped (`--gpu none`), so the app compiled its bases on first use | built for this Mac and carried in the app |
 | Texture uploads over file-backed memory | on the CPU | on the CPU, and `DM_GUEST_FILE_CPU_UP=0` to compare with upstream's path |
 | Measured | yes, [PERFORMANCE.md](PERFORMANCE.md) | no |
 
@@ -50,7 +51,8 @@ Everything else is unchanged: `DM_FPS_HOLD=off`, MetalFX upscaling, the keyboard
 
 **Better.** This is the first build where the game can lower its own 3D resolution under load, which is the lever that
 matters on a GPU this small. Upstream measured that change on a 16 GB M1 Pro at 33.5 to 42 fps in a race. Recycled render
-targets should also cut the long frames the resize used to cause: 1.8 GB of new Metal memory per 300 frames became 0.34.
+targets should also cut the long frames the resize used to cause: 1.8 GB of new Metal memory per 300 frames became 0.34. And the build carries a pipeline archive now, so a first
+visit should not spend itself compiling.
 
 **Worse.** The picture. Expect the 3D below 1080p most of the time, and on a smaller GPU than the ones upstream measured,
 lower still: their 16 GB M6 held a mean scene width of 1433 to 1760 out of 2048. And whether segment times cost smoothness
@@ -100,15 +102,19 @@ toolchain nxnative lists. Then:
 DUMP="/path/to/your/dump" scripts/build.sh
 ```
 
-The first build is the long one, about 46 minutes with 11,560 shaders, and this branch cannot avoid it: the shader chain moved
-from `cb2e91c138e3` to `4b57309b93d2`, so `main`'s translated libraries and its pipeline archive do not apply and both are built
-again. Later builds of this branch are the short ones, about 5 minutes.
+The first build is the long one, and this branch cannot avoid it: the shader chain moved from `cb2e91c138e3` to
+`4b57309b93d2`, so `main`'s translated libraries do not apply and all 11,560 shaders are translated again, about 46 minutes
+of it. Later builds of this branch are the short ones, about 5 minutes.
 
 The script packs the Mac host and shaders, bakes in the settings and the keyboard map, puts the icon in, signs the two
 executables and removes the bundle seal so macOS does not re-hash the 22 GB RomFS before the first launch.
 
-The pipeline archive is skipped (`--gpu none`): the app builds its pipelines on first use instead, which is where the
-first-visit hitches come from. `GPU=<gpu>` makes the archive instead, for the cost of an hour.
+The build makes the pipeline archive for this Mac's GPU, so the app's first start opens it instead of compiling its way
+through the course, and by default the pipelines the archive leaves to the device as well (`--prebake`). That adds an hour
+or more on top of the shader build here, and it is unmeasured on this branch. The archive is for one GPU, so an app built
+here still builds its own bases on another Mac. `GPU=none` skips it, which is what the first builds of this port did, and
+`--no-prebake` keeps the archive but drops the second half. Expect the app to grow: the archive this game built for itself
+at runtime was about 1.5 GB.
 
 `DUMP` has no default on purpose: it is your path, never the repository one. `OUT` and `WORK` default to `~/Documents`, and
 all of them can come from `scripts/local.conf`, which is not tracked. `DM_GUEST_FILE` needs 4 GB free on the temp volume;
