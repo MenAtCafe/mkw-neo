@@ -1744,13 +1744,20 @@ if FS_STATE_OFF:   # the build's stubs (FRAME_STEP of its patches.py), or those 
 
 # ---- Stubs (the modules whose patch file has STUBS of their build) ----
 # A fix of the game's own code that needs more instructions than its sites hold: STUBS[build ID](ctx) in its patches.py assembles them into the patch area and branches there from
-# its sites, with the frame step's ctx (here / emit / site / put / address, above) and no state page, so the host's pacing does not change (FRAME_STEP would also make the host take
-# the main for one with a frame step). A stub's code must hold nothing the rewriter would rewrite (x18, svc, tpidr, exclusive pairs), since it is not scanned.
+# its sites, with the frame step's ctx (here / emit / site / put / address, above) and the frame step state page's offset as ctx.state for a stub that sizes the game's
+# picture itself and reads the render scale there (ctx.render_scale: it then declares the capability a frame step stub would, and the host offers DM_RENDER_SCALE). A STUBS
+# fix never makes the host take the main for a frame step, which FRAME_STEP would. A stub's code must hold nothing the rewriter would rewrite (x18, svc, tpidr, exclusive
+# pairs), since it is not scanned.
 # Ori and the Will of the Wisps 1.2.1 serializes the users of Unity's shared constant-buffer table this way (its patches.py)
 STUBS = PATCHES['STUBS']
 if BUILD_ID in STUBS:
-    use_area(0); STUBS[BUILD_ID](types.SimpleNamespace(here=here, emit=emit, site=lambda off, orig: stub_site(off, orig, 'stub'),
-                                                       put=lambda off, words, why: stub_put(off, words, why, 'stub'), address=lambda off: stub_address(off, 'stub')))
+    use_area(0); st = types.SimpleNamespace(here=here, emit=emit, site=lambda off, orig: stub_site(off, orig, 'stub'),
+                                            put=lambda off, words, why: stub_put(off, words, why, 'stub'), address=lambda off: stub_address(off, 'stub'),
+                                            state=FS_STATE_OFF, render_scale=0)
+    STUBS[BUILD_ID](st)
+    # A stub that sizes the game's picture itself reads the frame step state page's render scale (+0x10, DM_RENDER_SCALE) and declares it as a frame
+    # step stub would (ctx.render_scale), so the loader holds the setting to it and the launcher offers it. No state page: 0, and the stub sets nothing
+    if st.render_scale and not RENDER_SCALE: RENDER_SCALE = st.render_scale
 
 # ---- Spin waits (every module) ----
 # A guest loop that polls memory until another thread changes it fills only its own core on the Switch, where any higher-priority thread pinned there preempts it, so the

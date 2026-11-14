@@ -47,8 +47,49 @@ MATCH_FRAME_STEP = {'main': [
      'stub': lambda ctx: frame_step(ctx, 0xa4)},   # 1.8.0 (v917504) main+0x69cbb0
 ]}
 
+# ---- Render scale (DM_RENDER_SCALE: the frame step state page's +0x10 float, 1.0 by default) ----
+# main+0xc0ff60 fills an object holding the game's resolution table: each (width, height) comes from game__GamePerformanceGraphicsConfig
+# (ResolutionMiddle / MiddleForDiv / MiddleForDiv4 / Low / LowForDiv / LowForDiv4, for the 3D and for the screen; main+0x1c6cad4 names them), the height
+# capped at 1440 and the width height / 9 * 16. The 3D entries size the scene apart from the screen, so scaling only those leaves the screen's size and the
+# HUD as they are. The table is filled once and the last entry's width is stored here (main+0xc10408, mov w8,#0x10000), so the stub runs once; the next
+# thing the function does is call out (main+0xc10410), and a call clobbers every caller-saved register, so x8, x9 and s0-s1 are free at the site. Sizes
+# are rounded to nearest and left even, since the game makes half-size passes: fcvtzs would take 1343 from 1920 x 0.7. 1.0 is the game's own sizes.
+cfg_3d = (0x2e0, 0x2e4, 0x2f0, 0x2f4, 0x300, 0x304, 0x310, 0x314, 0x320, 0x324, 0x330, 0x334)   # (width, height) of Middle, MiddleForDiv, MiddleForDiv4, Low, LowForDiv, LowForDiv4
+
+
+def render_scale(ctx):
+    here, emit, site, put, state = ctx.here, ctx.emit, ctx.site, ctx.put, ctx.state
+    site(0xc10408, '2800a052')   # mov w8,#0x10000, the last entry's width
+    start = here(); emit(ADRP(8, here(), state))
+    for w in (0xbd401100,   # ldr s0,[x8,#0x10]   the host's render scale
+              0x1e2e1001,   # fmov s1,#1.0
+              0x1e212000):  # fcmp s0,s1
+        emit(w)
+    per = 6
+    emit(0x54000000 | ((5 + per * len(cfg_3d) - 4) << 5))   # b.eq done   1.0: the game's own sizes, bit for bit
+    for off in cfg_3d:
+        sh = (off // 4) << 10
+        for w in (0xb9400269 | sh,   # ldr w9,[x19,#off]
+                  0x1e220121,        # scvtf s1,w9
+                  0x1e200821,        # fmul s1,s1,s0
+                  0x1e200029,        # fcvtns w9,s1
+                  0x121f7929,        # and w9,w9,#~1   even, for the half-size passes
+                  0xb9000269 | sh):  # str w9,[x19,#off]
+            emit(w)
+    emit(0x52a00028)                     # done: mov w8,#0x10000, the instruction the site had
+    emit(B(here(), 0xc1040c))
+    put(0xc10408, [B(0xc10408, start)], 'resolution table: the 3D entries times the host render scale (state +0x10; 1.0 = the game\'s own sizes)')
+    ctx.render_scale = 1                 # the launcher then offers DM_RENDER_SCALE, and the loader holds it to 0.5-1.0
+
+
+STUBS = {'9e244438c3d8ef1c703a6a85ef99c4f0': render_scale}   # v0 main
+
 BINDING = [
     {'what': 'frame interval from the host\'s step', 'now': 'game', 'goal': 'game', 'purpose': 'frame rate',
      'why': "the game's own interval choice, found by its function's fingerprint on any build that keeps the function",
      'checked': 'v0 and 1.8.0 mains: one function with each fingerprint, the sites and the free registers read by disassembly (2026-11-08, 1.8.0 2026-11-12)'},
+    {'what': 'render scale for the 3D views', 'now': 'build', 'goal': 'game', 'purpose': 'frame rate',
+     'why': "the game's own resolution table, filled once and scaled before the game reads it",
+     'blocked': 'the table has no function of its own to fingerprint: it is filled inside a larger function, so the site is an offset',
+     'checked': 'v0 main: the site (mov w8,#0x10000 before the last store) and the 12 entries read by disassembly (2026-11-14)'},
 ]
