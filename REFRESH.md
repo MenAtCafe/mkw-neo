@@ -1,8 +1,8 @@
 # This branch: the refresh onto current nxnative main
 
 main is the build that was measured. This branch is the same port on a newer engine: nxnative main
-`4b10c73f` (14 November 2026), 245 commits past the `c4ffb9df` main was built on. Nothing has been run
-or measured here yet. What follows is what changed underneath and what to measure first.
+`4b10c73f` (14 November 2026), 245 commits past the `c4ffb9df` main was built on. It has now been run:
+three races on Mario Bros. Circuit, in PERFORMANCE.md. What follows is what changed underneath and what came out.
 
 ## What upstream does now, so this branch carries none of it
 
@@ -54,20 +54,25 @@ offer the setting.
 
 ## What is different for a build of this branch
 
-The game's own dynamic resolution now runs, because segment timestamps are the default. Expect the 3D to be
-softer than the 1080p that PERFORMANCE.md describes, and the frame rate to be something else. The launcher also
-shows a render scale row it did not show before; 1.0 is the game's own sizes.
+The game's own dynamic resolution now runs, because segment timestamps are the default, and the launcher shows a
+render scale row it did not show before; 1.0 is the game's own sizes. Measured on Mario Bros. Circuit: a race at
+1.0 averages 27 to 32 fps, at 0.75, 47.5. The 3D is softer at 0.75, and that is the trade.
 
 The build now makes the pipeline archive for this Mac's GPU, where the earlier builds passed `--gpu none` and let the app
 compile its bases on first use. That is a longer first build and a bigger app, and it is the point: a first visit should
 not hitch on pipeline compiles. `GPU=none` goes back to the old behaviour.
 
-## What to measure first, in this order
+## What is measured, and what is not
 
-1. One race, warm cache: frame rate, dropped frames of 300, footprint, and the scene width from the log, with the
-   dynamic resolution on.
-2. The same race at render scale 1.0 and at 0.75.
-3. `DM_GUEST_FILE_CPU_UP=0` in `assets/env.txt`, to see whether upstream's transient source buffer made the CPU
-   upload gate unnecessary.
+Done, on Mario Bros. Circuit:
 
-PERFORMANCE.md gets its numbers back when those exist, not before.
+1. Three races, 1.0 then 0.75 then 1.0 again: frame rate, dropped frames, footprint, GPU time and the clock the replay
+   thread runs at. In PERFORMANCE.md.
+
+Not done:
+
+2. A second course, so whether Mario Bros. Circuit is typical is unknown.
+3. Render scale 0.5, which would say whether the replay thread is the floor.
+4. `DM_GUEST_FILE_CPU_UP=0` in `assets/env.txt`, to see whether upstream's transient source buffer made the CPU upload
+   gate unnecessary.
+5. What the 200 ms stalls are, which are not pipeline compiles.

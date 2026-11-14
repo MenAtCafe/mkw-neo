@@ -1,5 +1,66 @@
 # Performance
 
+Two builds are measured in this file. The first section is `upstream-refresh`, run on 14 November 2026. Everything from
+**The build this file was written for** down is `main`'s build, on the older engine.
+
+## The refresh branch: three runs
+
+Apple A18 Pro, 8 GB, macOS 27.2, dump v0 1.0.0. Build: this branch at `d6f41259`, shader chain `4b57309b93d2`, with the
+pipeline archive made for this Mac (`applegpu_g17p`) and carried in the app. Settings are the four in `assets/env.txt`:
+`DM_GUEST_FILE=1`, the keyboard map, `DM_PRESENT_UPSCALE=metalfx` and `DM_FPS_HOLD=off`. Mario Bros. Circuit, three runs in
+one session: render scale 1.0, then 0.75, then 1.0 again.
+
+| Run | Render scale | Race mean frame | That is | GPU p50 | Dropped of 300 |
+|---|---|---|---|---|---|
+| First, cold | 1.00 | 36.7 ms | 27.2 fps | 19.8 ms | 229 mean, 262 worst |
+| Second | 0.75 | 21.1 ms | 47.5 fps | 12.0 ms | 96 mean, 139 worst |
+| Third, warm | 1.00 | 30.8 ms | 32.5 fps | 16.9 ms | 202 mean, 236 worst |
+
+The race is the windows where the 3D is loaded. The menus before and after it run at 60 fps with the GPU at 2 to 6 ms, and
+the footprint was 4.1 to 4.6 GB across the three. The app ships with 1.0, the game's own sizes, because the sharper
+picture was worth more than the frames to the person playing it; the launcher's Render scale row is left free, so 0.75 is one
+setting away.
+
+**Render scale is worth about 15 fps.** 0.75 takes the GPU from 17 to 20 ms down to 12.0, inside the 16.67 ms slot, and
+roughly halves the dropped frames. At 1.0 the GPU is over budget before the CPU does anything.
+
+**Two runs at the same setting differ by 5 fps.** The third run beat the first at the same 1.0, which is warm caches: fewer
+pipelines built during the race. Anything under about 5 fps here is noise.
+
+**The limiter is the CPU now.** In the 0.75 run the queue replay thread, which turns the game's NVN calls into Metal, took
+12.73 ms a frame at 1.32 GHz while the GPU took 12.0. At 1.0 it took 15.99 ms at 1.53 GHz. Both sit near the 16.67 ms slot,
+so a render scale below 0.75 has little left to win.
+
+**What moves is the clock, not the code.** The same thread took 3.72 ms at 2.77 GHz in the menus after the race. During the
+race it sits at 1.3 to 1.5 GHz with about 1 W of CPU energy, which is this laptop's power and heat ceiling.
+
+**The pipeline archive works but is not complete.** It opened in 3.8 s, 775.1 MB, and held the bases of every probed shader
+pair (16 of 16). During the race the game still asked for more: 44 bases over 16.3 s of thread time on the 1.0 run, 25 over
+6.9 s on the 0.75 run. That is the empty `pso_manifest.tsv`. One `[RED]` line appeared once, "swizzled texture storage is
+not in a memory pool; falling back to the CPU".
+
+### The stutters
+
+The 0.75 race had 228 frames over 16.7 ms. Of those, 23 involved a pipeline or a shader library and 49 had more than a
+megabyte of texture uploads, so compiles are no longer the main cause. The worst frames are not NVN at all:
+
+```
+frame 3091 (90.91 s) whole frame 258.4 ms, submit+present 13.2 ms, GPU 10.6 ms;
+new pipelines 0 + shader libraries 0; texture uploads 4 first + 0 re-uploads, 10.7 MB / 4.4 ms
+```
+
+258 ms with 13 ms of submit and 11 ms of GPU accounted for. Frames 2850, 3840 and 3850 have the same shape, 215 to 247 ms
+with double-digit submit and GPU times. Whatever that is, it is in the game's own threads or the host around them, and it
+is open.
+
+### What is not measured on this branch
+
+- A second course, so whether Mario Bros. Circuit is typical is unknown.
+- Render scale 0.5, which would say whether the replay thread is really the floor.
+- What those 200 ms stalls are.
+
+## The build this file was written for
+
 Apple A18 Pro, 8 GB, macOS 27.2. Dump v0 1.0.0. Build: nxnative main `cb2e91c138e3` plus the patches in the README.
 Settings: `DM_GUEST_FILE=1`, `op_mode handheld` (1080p), `mem_map_limit on`, `DM_PRESENT_UPSCALE=metalfx`, `DM_FPS_HOLD=off`.
 

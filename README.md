@@ -6,8 +6,9 @@ translated to Metal, which is what [nxnative](https://github.com/seedds/nxnative
 
 **This branch is the same port on a newer engine.** It is nxnative main `4b10c73f`, 245 commits past the `c4ffb9df`
 that `main` is built on, plus one fix taken from [plumber-racer-2](https://github.com/cheemu21/plumber-racer-2).
-`main` keeps the build that was measured; this one has not been run at all, so the numbers on `main` are still the only
-numbers. [REFRESH.md](REFRESH.md) has the reasoning, and what was deliberately left out.
+`main` keeps the build that was measured first. This one has now been run too: three races on Mario Bros. Circuit, in
+[PERFORMANCE.md](PERFORMANCE.md). At full size a race runs at 27 to 32 fps here; at render scale 0.75, 47.5.
+[REFRESH.md](REFRESH.md) has the reasoning and what was deliberately left out.
 
 Nothing from the game is in here. No ROM, no keys, no built app. You need your own copy of the game to build it.
 
@@ -24,7 +25,7 @@ Nothing from the game is in here. No ROM, no keys, no built app. You need your o
 | Render scale | not offered for this game | `DM_RENDER_SCALE`, 0.5 to 1.0, 1.0 the game's own sizes |
 | Pipeline archive | skipped (`--gpu none`), so the app compiled its bases on first use | built for this Mac and carried in the app |
 | Texture uploads over file-backed memory | on the CPU | on the CPU too, and the branch adds `DM_GUEST_FILE_CPU_UP=0`, which turns that off, to compare with upstream's path |
-| Measured | yes, [PERFORMANCE.md](PERFORMANCE.md) | no |
+| Measured | yes, [PERFORMANCE.md](PERFORMANCE.md) | yes, three races on Mario Bros. Circuit |
 
 The keyboard map, the icon, the 8 GB profile keys, the build scripts and the settings are the same as `main`, because they
 were right the first time.
@@ -48,19 +49,27 @@ holds, which may make the gate unnecessary, and the switch puts the uploads back
 
 Everything else is unchanged: `DM_FPS_HOLD=off`, MetalFX upscaling, the keyboard map, `mem_map_limit` and handheld mode.
 
-## What to expect
+## What the runs show
 
-**Better.** This is the first build where the game can lower its own 3D resolution under load, which is the lever that
-matters on a GPU this small. Upstream measured that change on a 16 GB M1 Pro at 33.5 to 42 fps in a race. Recycled render
-targets should also cut the long frames the resize used to cause: 1.8 GB of new Metal memory per 300 frames became 0.34. And the build carries a pipeline archive now, so a first
-visit should not spend itself compiling.
+Three races on Mario Bros. Circuit, on this machine, are in [PERFORMANCE.md](PERFORMANCE.md). The short version:
 
-**Worse.** The picture. Expect the 3D below 1080p most of the time, and on a smaller GPU than the ones upstream measured,
-lower still: their 16 GB M6 held a mean scene width of 1433 to 1760 out of 2048. And whether segment times cost smoothness
-is not settled upstream: 12 and 17 frames over two vsyncs per 2,400 with the old behaviour, against 19, 229 and 50 with them.
+**Render scale is the lever, and it is worth about 15 fps.** At 1.0 a race averages 27 to 32 fps with the GPU at 17 to
+20 ms, over the 16.67 ms slot. At 0.75 it averages 47.5 fps, GPU 12.0 ms, and roughly half the dropped frames.
 
-**Unknown.** Whether the frame pace under upstream's frame step behaves like the 52 fps `main` measured with
-`DM_FPS_HOLD=off`, and whether the CPU upload gate is still the right trade.
+**At 0.75 the limiter is the CPU.** The queue replay thread took 12.73 ms a frame at 1.32 GHz, close to the slot. The
+same thread measured 3.72 ms at 2.77 GHz in the menus, so what moves during a race is the clock, which is this laptop's
+ceiling.
+
+**The pipeline archive works.** 775.1 MB, opened in 3.8 s, the bases of every probed shader pair found. The game still
+built 25 to 44 more bases during a race, which is the empty prewarm list.
+
+**The stutters are not compiles.** The 0.75 race had 228 frames over 16.7 ms and only 23 of them involved a pipeline. The
+worst frame was 258 ms with 13 ms of submit and 11 ms of GPU inside it, so the time is going in the game's own threads or
+in the host around them. Open.
+
+**The picture.** At 0.75 the 3D renders at 1440x810 and MetalFX scales it to the window; the HUD and the final picture
+stay at 1920x1080. At 1.0 the 3D is 1920x1080 and the race is slower.
+
 
 `tex_soft` is off in this profile. Our earlier build found one level down tiles Mario Kart World's terrain UVs wrongly, since
 its terrain shaders read a texture's size to lay out those UVs; plumber-racer-2 runs it on and reports no broken textures,
@@ -68,8 +77,9 @@ so that finding may belong to the older engine. Untested here.
 
 ## What is not measured
 
-- The frame rate, dropped frames and footprint of this build, here or anywhere.
-- What a render scale below 1.0 buys or costs.
+- A second course, so whether Mario Bros. Circuit is typical is unknown.
+- Render scale 0.5, which would say whether the replay thread is really the floor.
+- What the 200 ms stalls are.
 - Whether the CPU upload gate is still needed.
 
 ## How to play
